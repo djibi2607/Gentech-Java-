@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "users", indexes ={
@@ -55,5 +56,8 @@ public class UserModel {
     private void onUpdate(){
         this.updatedAt = ZonedDateTime.now(ZoneId.of("UTC"));
     }
+
+    @OneToMany(mappedBy = "user")
+    private List<AuditLogs> logs;
 
 }

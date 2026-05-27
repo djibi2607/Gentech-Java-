@@ -1,4 +1,7 @@
 package com.abdoul.gentech_fintech.Repositories;
 
-public class RefreshRepository {
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RefreshRepository {
 }
