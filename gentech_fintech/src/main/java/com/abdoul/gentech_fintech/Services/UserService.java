@@ -10,6 +10,7 @@ import com.abdoul.gentech_fintech.Repositories.WalletRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
@@ -48,6 +49,10 @@ public class UserService {
 
         walletRepository.save(newWallet);
 
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Welcome to Gentech " + data.getName());
+        response.put("balance", newWallet.getBalance().toPlainString());
 
+        return response;
     }
 }
