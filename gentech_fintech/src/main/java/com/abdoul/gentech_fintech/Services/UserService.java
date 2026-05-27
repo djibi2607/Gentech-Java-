@@ -58,7 +58,10 @@ public class UserService {
         response.put("notice", "Welcome to Gentech " + data.getName());
         response.put("balance", newWallet.getBalance().toPlainString());
 
-        resend.sendWelcomeEmail(data.getName(), "Account successfully created");
+        if (data.getEmail() != null) {
+            resend.sendWelcomeEmail(data.getName(), "Account successfully created");
+        }
+
         return response;
     }
 }
