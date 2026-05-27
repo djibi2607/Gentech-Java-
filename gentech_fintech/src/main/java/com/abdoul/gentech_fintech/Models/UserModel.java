@@ -44,6 +44,8 @@ public class UserModel {
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime updatedAt;
 
+    private String role = "users";
+
     @PrePersist
     private void onCreate (){
         this.createdAt = ZonedDateTime.now(ZoneId.of("UTC"));
