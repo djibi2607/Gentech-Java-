@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN fa_enabled boolean not null default true;

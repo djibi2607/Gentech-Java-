@@ -60,4 +60,6 @@ public class UserModel {
     @OneToMany(mappedBy = "user")
     private List<AuditLogs> logs;
 
+    private boolean faEnabled = true;
+
 }

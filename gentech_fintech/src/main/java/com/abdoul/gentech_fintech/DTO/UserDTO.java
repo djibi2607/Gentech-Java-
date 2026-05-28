@@ -27,4 +27,12 @@ public class UserDTO {
         @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).+$", message = "Enter a more secure password containing symbols and letters")
         private String password;
     }
+    @Getter
+    @Setter
+    public static class Login {
+        private String email;
+        private String phone;
+        @NotBlank(message = "You must enter a password")
+        private String password;
+    }
 }

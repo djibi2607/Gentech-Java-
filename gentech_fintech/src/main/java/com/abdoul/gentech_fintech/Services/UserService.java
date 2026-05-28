@@ -3,6 +3,7 @@ package com.abdoul.gentech_fintech.Services;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
 import com.abdoul.gentech_fintech.Exceptions.ConflictException;
+import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
 import com.abdoul.gentech_fintech.Models.AuditLogs;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Models.WalletModel;
@@ -81,6 +82,25 @@ public class UserService {
             log.error("Service failed {}", ex.getMessage());
             throw ex;
         }
+    }
+
+    @Transactional
+    public Map<String, String> logIn (UserDTO.Login data){
+        if (data.getEmail() == null && data.getPhone() == null){
+            throw new BadRequestException("You must enter an email or phone number");
+        }
+
+        UserModel currentUser = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
+
+        if (currentUser == null || currentUser.isDeleted()){
+            throw new NotFoundException("Account not found. Please sign up first");
+        }
+
+        if (currentUser.isFaEnabled()){
+
+        }
+
+
     }
 
 }
