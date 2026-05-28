@@ -20,8 +20,10 @@ public class RefreshModel {
 
     private String token;
 
+    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime createdAt;
 
+    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime expiresAt;
 
     private boolean isRevoked = false;

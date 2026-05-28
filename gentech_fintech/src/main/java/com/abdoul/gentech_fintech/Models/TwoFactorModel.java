@@ -22,10 +22,13 @@ public class TwoFactorModel {
 
     private boolean revoked = false;
 
+    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime createdAt;
 
+    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime expiresAt;
 
+    @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime updatedAt;
 
     @PrePersist
