@@ -1,5 +1,8 @@
 package com.abdoul.gentech_fintech.Filter;
 
+import com.abdoul.gentech_fintech.Exceptions.JwtException;
+import com.abdoul.gentech_fintech.Models.UserModel;
+import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,9 +16,11 @@ import java.io.IOException;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwt;
+    private final UserRepository userRepository;
 
-    public JwtFilter(JwtUtil jwt){
+    public JwtFilter(JwtUtil jwt, UserRepository userRepository){
         this.jwt = jwt;
+        this.userRepository = userRepository;
     }
 
 
@@ -38,8 +43,25 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String cleanToken = token.split(" ")[1];
 
+        if (!jwt.isTokenValid(cleanToken)){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid credentials");
+            return;
+        }
 
+        String id = jwt.extractIdFromToken(cleanToken);
 
+        UserModel currentUser = userRepository.findById(Long.parseLong(id))
+                .orElse(null);
+
+        if (currentUser == null){
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().write("User not found");
+            return;
+        }
+
+        request.setAttribute("currentUser", currentUser);
+        filterChain.doFilter(request, response);
 
     }
 }
