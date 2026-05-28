@@ -122,6 +122,10 @@ public class UserService {
             throw new NotFoundException("Account not found. Please sign up first");
         }
 
+        if (!encoder.matches(data.getPassword(), currentUser.getPassword())) {
+            throw new BadRequestException("Invalid credentials");
+        }
+
         Map<String, String> response = new LinkedHashMap<>();
 
         ZonedDateTime today = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -147,6 +151,7 @@ public class UserService {
 
             if (twoFactorModel != null){
                 twoFactorModel.setCode(code);
+                twoFactorRepository.save(twoFactorModel);
             }
             else {
                 TwoFactorModel new2fa = new TwoFactorModel();
@@ -156,7 +161,18 @@ public class UserService {
                 twoFactorRepository.saveAndFlush(new2fa);
             }
 
+            resend.sendCodeEmail(currentUser.getName(), "Verification Code", code);
+
+            response.put("notice", "A verification code has been sent to your email");
             response.put("temporary token", temporaryToken);
+
+            AuditLogs newLogs = new AuditLogs();
+            newLogs.setUser(currentUser);
+            newLogs.setAction("User received an email containing a verification code to login with 2fa");
+
+            logRepository.save(newLogs);
+
+            return response;
 
         }
 
