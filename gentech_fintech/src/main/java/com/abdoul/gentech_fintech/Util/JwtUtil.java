@@ -1,5 +1,6 @@
 package com.abdoul.gentech_fintech.Util;
 
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +19,12 @@ public class JwtUtil {
     }
 
     public String extractIdFromToken (String token){
-        return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(secretKey.getBytes())).build().parseSignedClaims(token).getPayload().getSubject();
+        try {
+            return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(secretKey.getBytes())).build().parseSignedClaims(token).getPayload().getSubject();
+        }
+        catch (Exception ex){
+            throw new JwtException("Invalid token");
+        }
     }
 
     public boolean isTokenValid (String token){
