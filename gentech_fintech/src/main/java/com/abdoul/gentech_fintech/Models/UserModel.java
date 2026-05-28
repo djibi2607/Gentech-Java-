@@ -66,7 +66,7 @@ public class UserModel {
     private List<RefreshModel> refresh;
 
     @OneToMany(mappedBy = "user")
-    private KycModel kyc;
+    private List<KycModel> kyc;
 
     @OneToOne(mappedBy = "user")
     private TwoFactorModel twoFactor;
