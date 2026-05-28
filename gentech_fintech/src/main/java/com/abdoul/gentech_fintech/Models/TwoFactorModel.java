@@ -37,6 +37,8 @@ public class TwoFactorModel {
     @PreUpdate
     public void onUpdate(){
         this.updatedAt = ZonedDateTime.now(ZoneId.of("UTC"));
+        this.expiresAt = ZonedDateTime.now(ZoneId.of("UTC")).plusMinutes(10);
+        this.revoked = false;
     }
 
     @OneToOne

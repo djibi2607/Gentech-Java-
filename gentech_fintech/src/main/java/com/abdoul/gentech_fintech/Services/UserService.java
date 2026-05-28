@@ -10,6 +10,7 @@ import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
+import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,8 +32,10 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final RefreshRepository refreshRepository;
     private final KycRepository kycRepository;
+    private final TwoFactorUtil twoFactor;
+    private final TwoFactorRepository twoFactorRepository;
 
-    public UserService (UserRepository userRepository, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
+    public UserService (UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
@@ -41,6 +44,8 @@ public class UserService {
         this.jwtUtil = jwtUtil;
         this.refreshRepository = refreshRepository;
         this.kycRepository = kycRepository;
+        this.twoFactor = twoFactor;
+        this.twoFactorRepository = twoFactorRepository;
     }
 
     @Transactional
@@ -135,6 +140,23 @@ public class UserService {
 
         if (currentUser.isFaEnabled()){
             String temporaryToken = jwtUtil.createAccessToken(currentUser.getId());
+
+            String code = twoFactor.create2FactorCode();
+
+            TwoFactorModel twoFactorModel = currentUser.getTwoFactor();
+
+            if (twoFactorModel != null){
+                twoFactorModel.setCode(code);
+            }
+            else {
+                TwoFactorModel new2fa = new TwoFactorModel();
+                new2fa.setUser(currentUser);
+                new2fa.setCode(code);
+
+                twoFactorRepository.saveAndFlush(new2fa);
+            }
+
+            response.put("temporary token", temporaryToken);
 
         }
 
