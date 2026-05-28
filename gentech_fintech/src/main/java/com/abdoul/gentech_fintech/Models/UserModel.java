@@ -68,4 +68,7 @@ public class UserModel {
     @OneToMany(mappedBy = "user")
     private KycModel kyc;
 
+    @OneToOne(mappedBy = "user")
+    private TwoFactorModel twoFactor;
+
 }

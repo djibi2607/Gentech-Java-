@@ -15,6 +15,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,10 +119,23 @@ public class UserService {
 
         Map<String, String> response = new LinkedHashMap<>();
 
-        if
+        ZonedDateTime today = ZonedDateTime.now(ZoneId.of("UTC"));
+
+        KycModel idKyc = kycRepository.findByUserAndKycType(currentUser, KycType.id);
+
+        if (currentUser.getCreatedAt().plusDays(14).isBefore(today) && idKyc.getStatus() == KycStatus.Pending){
+            throw new BadRequestException("This account has been deactivated because of failure to kyc submission");
+        }
+
+        KycModel selfieKyc = kycRepository.findByUserAndKycType(currentUser, KycType.selfie);
+
+        if (currentUser.getCreatedAt().plusDays(14).isBefore(today) && selfieKyc.getStatus() == KycStatus.Pending){
+            throw new BadRequestException("This account has been deactivated because of failure to kyc submission");
+        }
 
         if (currentUser.isFaEnabled()){
-            
+            String temporaryToken = jwtUtil.createAccessToken(currentUser.getId());
+
         }
 
         String accessToken = jwtUtil.createAccessToken(currentUser.getId());
