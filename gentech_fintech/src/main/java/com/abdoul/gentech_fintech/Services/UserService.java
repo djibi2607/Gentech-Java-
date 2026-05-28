@@ -10,6 +10,7 @@ import com.abdoul.gentech_fintech.Models.WalletModel;
 import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Repositories.WalletRepository;
+import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,13 +27,15 @@ public class UserService {
     private final WalletRepository walletRepository;
     private final Resend resend;
     private final LogRepository logRepository;
+    private final JwtUtil jwtUtil;
 
-    public UserService (UserRepository userRepository, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository){
+    public UserService (UserRepository userRepository, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
         this.resend = resend;
         this.logRepository = logRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @Transactional
@@ -99,6 +102,8 @@ public class UserService {
         if (currentUser.isFaEnabled()){
 
         }
+
+        String accessToken = jwtUtil.createAccessToken(currentUser.getId());
 
 
     }
