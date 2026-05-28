@@ -25,7 +25,7 @@ public class AuditLogs {
     private ZonedDateTime initiatedAt;
 
     @PrePersist
-    public void onCreate (){
+    protected void onCreate (){
         this.initiatedAt = ZonedDateTime.now(ZoneId.of("UTC"));
     }
 

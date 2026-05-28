@@ -62,4 +62,10 @@ public class UserModel {
 
     private boolean faEnabled = true;
 
+    @OneToMany(mappedBy = "user")
+    private List<RefreshModel> refresh;
+
+    @OneToMany(mappedBy = "user")
+    private KycModel kyc;
+
 }

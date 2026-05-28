@@ -1,15 +1,13 @@
 package com.abdoul.gentech_fintech.Services;
 
+import com.abdoul.gentech_fintech.Configuration.KycStatus;
+import com.abdoul.gentech_fintech.Configuration.KycType;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
 import com.abdoul.gentech_fintech.Exceptions.ConflictException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
-import com.abdoul.gentech_fintech.Models.AuditLogs;
-import com.abdoul.gentech_fintech.Models.UserModel;
-import com.abdoul.gentech_fintech.Models.WalletModel;
-import com.abdoul.gentech_fintech.Repositories.LogRepository;
-import com.abdoul.gentech_fintech.Repositories.UserRepository;
-import com.abdoul.gentech_fintech.Repositories.WalletRepository;
+import com.abdoul.gentech_fintech.Models.*;
+import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 @Slf4j
 @Service
@@ -28,14 +27,18 @@ public class UserService {
     private final Resend resend;
     private final LogRepository logRepository;
     private final JwtUtil jwtUtil;
+    private final RefreshRepository refreshRepository;
+    private final KycRepository kycRepository;
 
-    public UserService (UserRepository userRepository, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil){
+    public UserService (UserRepository userRepository, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
         this.resend = resend;
         this.logRepository = logRepository;
         this.jwtUtil = jwtUtil;
+        this.refreshRepository = refreshRepository;
+        this.kycRepository = kycRepository;
     }
 
     @Transactional
@@ -63,6 +66,19 @@ public class UserService {
             newWallet.setUser(newUser);
 
             walletRepository.save(newWallet);
+
+            KycModel idKyc = new KycModel();
+            idKyc.setUser(newUser);
+            idKyc.setKycType(KycType.id);
+
+            KycModel selfieKyc = new KycModel();
+            selfieKyc.setUser(newUser);
+            selfieKyc.setKycType(KycType.selfie);
+
+            List<KycModel> kyc = List.of(selfieKyc, idKyc);
+
+            kycRepository.saveAll(kyc);
+
 
             Map<String, String> response = new LinkedHashMap<>();
             response.put("notice", "Welcome to Gentech " + data.getName());
@@ -99,13 +115,36 @@ public class UserService {
             throw new NotFoundException("Account not found. Please sign up first");
         }
 
-        if (currentUser.isFaEnabled()){
+        Map<String, String> response = new LinkedHashMap<>();
 
+        if
+
+        if (currentUser.isFaEnabled()){
+            
         }
 
         String accessToken = jwtUtil.createAccessToken(currentUser.getId());
 
+        String refreshToken = jwtUtil.createRefresh();
 
+        RefreshModel newRefresh = new RefreshModel();
+        newRefresh.setUser(currentUser);
+        newRefresh.setToken(refreshToken);
+
+        refreshRepository.save(newRefresh);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("User logged in with 2fa disabled");
+        newLog.setUser(currentUser);
+
+        logRepository.save(newLog);
+
+        response.put ("notice", "Login successful");
+        response.put("access token", accessToken);
+        response.put("refresh token", refreshToken);
+        response.put("token type", "Bearer ");
+
+        return response;
     }
 
 }
