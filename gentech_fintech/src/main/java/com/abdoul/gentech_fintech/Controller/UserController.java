@@ -24,4 +24,9 @@ public class UserController {
     public ResponseEntity<Map<String, String>> createAccount (@Valid @RequestBody UserDTO.SignUp data){
         return ResponseEntity.ok().body(userService.createAccount(data));
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login (@Valid @RequestBody UserDTO.Login data){
+        return ResponseEntity.ok().body(userService.logIn(data));
+    }
 }
