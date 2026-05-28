@@ -1,0 +1,19 @@
+package com.abdoul.gentech_fintech.Configuration;
+
+import com.abdoul.gentech_fintech.Filter.JwtFilter;
+import com.abdoul.gentech_fintech.Filter.RateLimitingFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class RateLimitingConfig {
+    @Bean
+    public FilterRegistrationBean<RateLimitingFilter> registrationBean (RateLimitingFilter rateLimitingFilter){
+        FilterRegistrationBean<RateLimitingFilter> reg = new FilterRegistrationBean<>();
+        reg.setFilter(rateLimitingFilter);
+        reg.setOrder(2);
+
+        return reg;
+    }
+}

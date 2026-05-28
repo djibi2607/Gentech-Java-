@@ -18,7 +18,7 @@ public class JwtConfig {
         FilterRegistrationBean <JwtFilter> reg = new FilterRegistrationBean<>();
 
         reg.setFilter(jwtFilter);
-        reg.addUrlPatterns();
+        reg.addUrlPatterns("/api/users/getBalance");
         reg.setOrder(1);
 
         return reg;
