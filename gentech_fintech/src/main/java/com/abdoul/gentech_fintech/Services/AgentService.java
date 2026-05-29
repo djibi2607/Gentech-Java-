@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.sound.sampled.AudioInputStream;
 import java.math.BigDecimal;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,4 +170,78 @@ public class AgentService {
     }
 
     @Transactional
+    public Map<String, String> depositWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        if (!jwt.isTokenValid(data.getToken())) {
+            throw new BadRequestException("Invalid or expired token");
+        }
+
+        Long id = Long.parseLong(jwt.extractIdFromToken(data.getToken()));
+
+        UserModel user = userRepository.findById(id).orElse(null);
+
+        if (user == null){
+            throw new RuntimeException("User not found");
+        }
+
+        WalletModel userWallet = walletRepository.findById(user.getWallet().getId()).orElse(null);
+
+        if (userWallet == null){
+            throw new NotFoundException("Wallet not found");
+        }
+
+        if (userWallet.getUser().getTwoFactor().getExpiresAt().isBefore(ZonedDateTime.now(ZoneId.of("UTC"))) || userWallet.getUser().getTwoFactor().isRevoked()) {
+            throw new BadRequestException("Expired code");
+        }
+
+        if (!userWallet.getUser().getTwoFactor().getCode().equals(data.getCode())){
+            throw new BadRequestException("Invalid code");
+        }
+
+        userWallet.getUser().getTwoFactor().setRevoked(true);
+        twoFactorRepository.save(userWallet.getUser().getTwoFactor());
+
+        if (userWallet.getId().equals(currentUser.getWallet().getId())){
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("Agent has been flagged for attempting to deposit in their account");
+            logRepository.save(newLog);
+            throw new ForbiddenException("Your account has been flagged");
+        }
+
+        TransactionModel newTrans = new TransactionModel();
+        newTrans.setAmount(data.getAmount());
+        newTrans.setTransType(TransType.DEPOSIT);
+        newTrans.setReceiverWallet(userWallet);
+        newTrans.setDescription(data.getDescription());
+
+        transactionRepository.save(newTrans);
+
+        BigDecimal newBalance = userWallet.getBalance().add(data.getAmount());
+        userWallet.setBalance(newBalance);
+        walletRepository.save(userWallet);
+
+        AuditLogs agentLog = new AuditLogs();
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has deposited $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet with 2fa verification");
+        agentLog.setUser(currentUser);
+
+        AuditLogs userLog = new AuditLogs();
+        userLog.setUser(userWallet.getUser());
+        userLog.setAction("User deposited $" + data.getAmount());
+
+        List<AuditLogs> logs = List.of(userLog, agentLog);
+
+        logRepository.saveAll(logs);
+
+        resend.sendTransactionEmail(userWallet.getUser().getName(), "Deposit has been made to your account", data.getAmount(), TransType.DEPOSIT);
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Deposit successful");
+
+        return response;
+    }
 }
