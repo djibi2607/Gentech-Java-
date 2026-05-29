@@ -12,6 +12,8 @@ public class RateLimitingConfig {
     public FilterRegistrationBean<RateLimitingFilter> registrationBean (RateLimitingFilter rateLimitingFilter){
         FilterRegistrationBean<RateLimitingFilter> reg = new FilterRegistrationBean<>();
         reg.setFilter(rateLimitingFilter);
+        reg.addUrlPatterns("/api/users/*");
+        reg.addUrlPatterns("/api/agents/deposit");
         reg.setOrder(2);
 
         return reg;
