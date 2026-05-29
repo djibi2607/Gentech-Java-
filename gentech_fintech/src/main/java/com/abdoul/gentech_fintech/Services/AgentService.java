@@ -1,20 +1,21 @@
 package com.abdoul.gentech_fintech.Services;
 
+import com.abdoul.gentech_fintech.Configuration.KycType;
+import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.AgentDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
 import com.abdoul.gentech_fintech.Exceptions.ForbiddenException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
-import com.abdoul.gentech_fintech.Models.AuditLogs;
-import com.abdoul.gentech_fintech.Models.TwoFactorModel;
-import com.abdoul.gentech_fintech.Models.UserModel;
-import com.abdoul.gentech_fintech.Repositories.LogRepository;
-import com.abdoul.gentech_fintech.Repositories.TwoFactorRepository;
-import com.abdoul.gentech_fintech.Repositories.UserRepository;
+import com.abdoul.gentech_fintech.Models.*;
+import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.sound.sampled.AudioInputStream;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +29,21 @@ public class AgentService {
     private final LogRepository logRepository;
     private final JwtUtil jwt;
     private final TwoFactorRepository twoFactorRepository;
+    private final WalletRepository walletRepository;
+    private final TransactionRepository transactionRepository;
 
-    public AgentService (UserRepository userRepository, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository){
+    public AgentService (UserRepository userRepository, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
         this.userRepository = userRepository;
         this.resend = resend;
         this.twoFactorUtil = twoFactorUtil;
         this.logRepository = logRepository;
         this.jwt = jwt;
         this.twoFactorRepository = twoFactorRepository;
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
     }
 
+    @Transactional
     public Map<String, String> getUserCredentials (AgentDTO.UserCredentials data, UserModel currentUser){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
@@ -98,12 +104,65 @@ public class AgentService {
 
         AuditLogs newLog = new AuditLogs();
         newLog.setUser(currentUser);
-        newLog.setAction(currentUser.getRole() + "/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has requested to get the credentials for user with id " + user.getId());
+        newLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has requested to get the credentials for user with id " + user.getId());
         logRepository.save(newLog);
         Map<String, String> response = new LinkedHashMap<>();
 
         response.put("name", user.getName());
         response.put("wallet-id", String.valueOf(user.getWallet().getId()));
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, String> deposit (AgentDTO.Deposit data, UserModel currentUser){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        WalletModel userWallet = walletRepository.findById(data.getWalletId()).orElse(null);
+
+        if (userWallet == null){
+            throw new NotFoundException("Wallet not found");
+        }
+
+        if (userWallet.getId().equals(currentUser.getWallet().getId())){
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("Agent has been flagged for attempting to deposit in their account");
+            logRepository.save(newLog);
+            throw new ForbiddenException("Your account has been flagged");
+        }
+
+        TransactionModel newTrans = new TransactionModel();
+        newTrans.setAmount(data.getAmount());
+        newTrans.setTransType(TransType.DEPOSIT);
+        newTrans.setReceiverWallet(userWallet);
+        newTrans.setDescription(data.getDescription());
+
+        transactionRepository.save(newTrans);
+
+        BigDecimal newBalance = userWallet.getBalance().add(data.getAmount());
+        userWallet.setBalance(newBalance);
+        walletRepository.save(userWallet);
+
+        AuditLogs agentLog = new AuditLogs();
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has deposited $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet");
+        agentLog.setUser(currentUser);
+
+        AuditLogs userLog = new AuditLogs();
+        userLog.setUser(userWallet.getUser());
+        userLog.setAction("User deposited $" + data.getAmount());
+
+        List<AuditLogs> logs = List.of(userLog, agentLog);
+
+        logRepository.saveAll(logs);
+
+        resend.sendTransactionEmail(userWallet.getUser().getName(), "Deposit has been made to your account", data.getAmount(), TransType.DEPOSIT);
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Deposit successful");
 
         return response;
     }
