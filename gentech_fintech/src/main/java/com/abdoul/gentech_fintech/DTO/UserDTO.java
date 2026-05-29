@@ -35,4 +35,13 @@ public class UserDTO {
         @NotBlank(message = "You must enter a password")
         private String password;
     }
+
+    @Getter
+    @Setter
+    public static class LoginWith2fa{
+        @NotBlank(message = "Token field can't be empty")
+        private String token;
+        @NotBlank(message = "Code field can't be empty")
+        private String code;
+    }
 }

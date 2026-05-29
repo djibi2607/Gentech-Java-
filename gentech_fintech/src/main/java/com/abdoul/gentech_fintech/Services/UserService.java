@@ -5,6 +5,7 @@ import com.abdoul.gentech_fintech.Configuration.KycType;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
 import com.abdoul.gentech_fintech.Exceptions.ConflictException;
+import com.abdoul.gentech_fintech.Exceptions.JwtException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
 import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
@@ -193,6 +194,63 @@ public class UserService {
         logRepository.save(newLog);
 
         response.put ("notice", "Login successful");
+        response.put("access token", accessToken);
+        response.put("refresh token", refreshToken);
+        response.put("token type", "Bearer ");
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, String> loginWith2fa (UserDTO.LoginWith2fa data){
+        if (!jwtUtil.isTokenValid(data.getToken())){
+            throw new JwtException("Invalid credentials");
+        }
+
+        Long id = Long.parseLong(jwtUtil.extractIdFromToken(data.getToken()));
+
+        UserModel currentUser = userRepository.findById(id).orElse(null);
+
+        if (currentUser == null || currentUser.isDeleted()){
+            throw new NotFoundException("Account not found");
+
+        }
+
+        if (currentUser.getTwoFactor().getExpiresAt().isBefore(ZonedDateTime.now(ZoneId.of("UTC"))) || currentUser.getTwoFactor().isRevoked()){
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("Failed login attempt for expired code");
+            logRepository.save(newLog);
+            throw new BadRequestException("Expired code");
+        }
+
+        if (!currentUser.getTwoFactor().getCode().equals(data.getCode())){
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("Failed login attempt for wrong verification code");
+            logRepository.save(newLog);
+            throw new BadRequestException("Invalid code");
+        }
+
+        currentUser.getTwoFactor().setRevoked(true);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setUser(currentUser);
+        newLog.setAction("User successfully logged in with 2fa factor");
+        logRepository.save(newLog);
+
+        String accessToken = jwtUtil.createAccessToken(id);
+
+        String refreshToken = jwtUtil.createRefresh();
+
+        RefreshModel newRefresh = new RefreshModel();
+        newRefresh.setToken(refreshToken);
+        newRefresh.setUser(currentUser);
+
+        refreshRepository.save(newRefresh);
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Login successful");
         response.put("access token", accessToken);
         response.put("refresh token", refreshToken);
         response.put("token type", "Bearer ");
