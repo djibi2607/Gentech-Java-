@@ -166,4 +166,6 @@ public class AgentService {
 
         return response;
     }
+
+    @Transactional
 }

@@ -4,6 +4,7 @@ import com.abdoul.gentech_fintech.DTO.AgentDTO;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.AgentService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,4 +27,9 @@ public class AgentController {
         return ResponseEntity.ok().body(agentService.getUserCredentials(data, currentUser));
     }
 
+    @PostMapping("/deposit")
+    public ResponseEntity<Map<String, String>> deposit(HttpServletRequest request, @Valid @RequestBody AgentDTO.Deposit data){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(agentService.deposit(data, currentUser));
+    }
 }
