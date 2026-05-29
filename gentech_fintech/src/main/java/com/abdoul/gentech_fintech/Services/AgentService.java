@@ -301,4 +301,84 @@ public class AgentService {
 
         return response;
     }
+
+    @Transactional
+    public Map<String, String> withdrawWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        if (!jwt.isTokenValid(data.getToken())) {
+            throw new BadRequestException("Invalid or expired token");
+        }
+
+        Long id = Long.parseLong(jwt.extractIdFromToken(data.getToken()));
+
+        UserModel user = userRepository.findById(id).orElse(null);
+
+        if (user == null){
+            throw new RuntimeException("User not found");
+        }
+
+        WalletModel userWallet = walletRepository.findById(user.getWallet().getId()).orElse(null);
+
+        if (userWallet == null){
+            throw new NotFoundException("Wallet not found");
+        }
+
+        if (userWallet.getUser().getTwoFactor().getExpiresAt().isBefore(ZonedDateTime.now(ZoneId.of("UTC"))) || userWallet.getUser().getTwoFactor().isRevoked()) {
+            throw new BadRequestException("Expired code");
+        }
+
+        if (!userWallet.getUser().getTwoFactor().getCode().equals(data.getCode())){
+            throw new BadRequestException("Invalid code");
+        }
+
+        if (userWallet.getBalance().compareTo(data.getAmount()) < 0){
+            throw new BadRequestException("Insufficient funds");
+        }
+
+        userWallet.getUser().getTwoFactor().setRevoked(true);
+        twoFactorRepository.save(userWallet.getUser().getTwoFactor());
+
+        if (userWallet.getId().equals(currentUser.getWallet().getId())){
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("Agent has been flagged for attempting to withdraw from their account");
+            logRepository.save(newLog);
+            throw new ForbiddenException("Your account has been flagged");
+        }
+
+        TransactionModel newTrans = new TransactionModel();
+        newTrans.setAmount(data.getAmount());
+        newTrans.setTransType(TransType.WITHDRAWAL);
+        newTrans.setSenderWallet(userWallet);
+        newTrans.setDescription(data.getDescription());
+
+        transactionRepository.save(newTrans);
+
+        BigDecimal newBalance = userWallet.getBalance().subtract(data.getAmount());
+        userWallet.setBalance(newBalance);
+        walletRepository.save(userWallet);
+
+        AuditLogs agentLog = new AuditLogs();
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has withdrawn $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet with 2fa verification");
+        agentLog.setUser(currentUser);
+
+        AuditLogs userLog = new AuditLogs();
+        userLog.setUser(userWallet.getUser());
+        userLog.setAction("User withdrew $" + data.getAmount());
+
+        List<AuditLogs> logs = List.of(userLog, agentLog);
+
+        logRepository.saveAll(logs);
+
+        resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdraw has been made to your account", data.getAmount(), TransType.WITHDRAWAL);
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Withdrawal successful");
+
+        return response;
+    }
 }
