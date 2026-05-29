@@ -32,4 +32,12 @@ public class AgentController {
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(agentService.deposit(data, currentUser));
     }
+
+    @PostMapping("/deposit-with-2-fa")
+    public ResponseEntity<Map<String, String>> depositWith2fa (HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith2fa data){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(agentService.depositWith2fa(data, currentUser));
+    }
+
+
 }
