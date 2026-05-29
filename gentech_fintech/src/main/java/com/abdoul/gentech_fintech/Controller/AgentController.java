@@ -45,5 +45,11 @@ public class AgentController {
         return  ResponseEntity.ok().body(agentService.withdraw(data, currentUser));
     }
 
+    @PostMapping("withdraw-with-2fa")
+    public ResponseEntity<Map<String, String>> withdrawWith2fa (HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith2fa data){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(agentService.withdrawWith2fa(data, currentUser));
+    }
+
 
 }
