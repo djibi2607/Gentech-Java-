@@ -11,6 +11,7 @@ import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -378,6 +379,53 @@ public class AgentService {
         resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdraw has been made to your account", data.getAmount(), TransType.WITHDRAWAL);
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Withdrawal successful");
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, String> flagUser (AgentDTO.Unflag data, UserModel currentUser){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        UserModel user = null;
+
+        if (data.getId() != null){
+            user = userRepository.findById(data.getId()).orElse(null);
+        }
+
+        if (data.getEmail() != null || data.getPhone() != null){
+            user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
+        }
+
+        if (user == null) {
+            throw new NotFoundException("User not found");
+        }
+
+
+        if (user.isFlagged()) {
+            throw new BadRequestException("User is already flagged");
+        }
+
+        if (user.getId().equals(currentUser.getId())){
+            AuditLogs newLog = new AuditLogs();
+            newLog.setAction("Agent attempted to flag his account");
+            newLog.setUser(user);
+            logRepository.save(newLog);
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        user.setFlagged(true);
+        userRepository.save(user);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("Agent/ " + currentUser.getName() + "/" + currentUser.getEmail() + "/" + currentUser.getPhone() + " has flagged user with id " + user.getId());
+        newLog.setUser(currentUser);
+        logRepository.save(newLog);
+
+        Map<String,String> response = new LinkedHashMap<>();
+        response.put("notice", "Successfully flagged");
 
         return response;
     }

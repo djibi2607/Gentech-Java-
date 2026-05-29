@@ -50,4 +50,12 @@ public class AgentDTO {
         @NotBlank
         private String code;
     }
+
+    @Getter
+    @Setter
+    public static class Unflag{
+        private Long id;
+        private String email;
+        private String phone;
+    }
 }
