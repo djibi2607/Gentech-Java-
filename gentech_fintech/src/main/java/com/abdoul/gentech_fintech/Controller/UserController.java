@@ -27,8 +27,8 @@ public class UserController {
         return ResponseEntity.ok().body(userService.logIn(data));
     }
 
-    @PutMapping("/enable")
-    public void enable (){
-
+    @PostMapping("/login-with-2-fa")
+    public ResponseEntity<Map<String, String>> loginWith2fa (@Valid @RequestBody UserDTO.LoginWith2fa data){
+        return ResponseEntity.ok().body(userService.loginWith2fa(data));
     }
 }
