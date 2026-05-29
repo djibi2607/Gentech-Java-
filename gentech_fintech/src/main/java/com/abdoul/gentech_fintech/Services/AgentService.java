@@ -384,7 +384,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> flagUser (AgentDTO.Unflag data, UserModel currentUser){
+    public Map<String, String> flagUser (AgentDTO.Flag data, UserModel currentUser){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }

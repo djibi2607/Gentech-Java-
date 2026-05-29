@@ -51,5 +51,10 @@ public class AgentController {
         return ResponseEntity.ok().body(agentService.withdrawWith2fa(data, currentUser));
     }
 
+    @PostMapping("/flag")
+    public ResponseEntity<Map<String, String>> flagUser (HttpServletRequest request, @Valid @RequestBody AgentDTO.Flag data){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(agentService.flagUser(data, currentUser));
+    }
 
 }

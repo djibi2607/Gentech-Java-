@@ -53,7 +53,7 @@ public class AgentDTO {
 
     @Getter
     @Setter
-    public static class Unflag{
+    public static class Flag{
         private Long id;
         private String email;
         private String phone;
