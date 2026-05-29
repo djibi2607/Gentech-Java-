@@ -71,4 +71,7 @@ public class UserModel {
     @OneToOne(mappedBy = "user")
     private TwoFactorModel twoFactor;
 
+    @OneToOne(mappedBy = "user")
+    private WalletModel wallet;
+
 }
