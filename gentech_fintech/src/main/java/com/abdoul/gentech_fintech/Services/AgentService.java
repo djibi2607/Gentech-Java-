@@ -117,7 +117,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> deposit (AgentDTO.Deposit data, UserModel currentUser){
+    public Map<String, String> deposit (AgentDTO.DepositWith data, UserModel currentUser){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -241,6 +241,63 @@ public class AgentService {
         resend.sendTransactionEmail(userWallet.getUser().getName(), "Deposit has been made to your account", data.getAmount(), TransType.DEPOSIT);
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Deposit successful");
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, String> withdraw (AgentDTO.DepositWith data, UserModel currentUser){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        WalletModel userWallet = walletRepository.findById(data.getWalletId()).orElse(null);
+
+        if (userWallet == null){
+            throw new NotFoundException("Wallet not found");
+        }
+
+        if (userWallet.getId().equals(currentUser.getWallet().getId())){
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("Agent has been flagged for attempting to deposit in their account");
+            logRepository.save(newLog);
+            throw new ForbiddenException("Your account has been flagged");
+        }
+
+        if (userWallet.getBalance().compareTo(data.getAmount()) < 0){
+            throw new BadRequestException("Insufficient funds");
+        }
+
+        TransactionModel newTrans = new TransactionModel();
+        newTrans.setAmount(data.getAmount());
+        newTrans.setTransType(TransType.WITHDRAWAL);
+        newTrans.setSenderWallet(userWallet);
+        newTrans.setDescription(data.getDescription());
+
+        transactionRepository.save(newTrans);
+
+        BigDecimal newBalance = userWallet.getBalance().subtract(data.getAmount());
+        userWallet.setBalance(newBalance);
+        walletRepository.save(userWallet);
+
+        AuditLogs agentLog = new AuditLogs();
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has withdrawn $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet");
+        agentLog.setUser(currentUser);
+
+        AuditLogs userLog = new AuditLogs();
+        userLog.setUser(userWallet.getUser());
+        userLog.setAction("User withdrew $" + data.getAmount());
+
+        List<AuditLogs> logs = List.of(userLog, agentLog);
+
+        logRepository.saveAll(logs);
+
+        resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdrawal has been made to your account", data.getAmount(), TransType.WITHDRAWAL);
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Withdrawal successful");
 
         return response;
     }

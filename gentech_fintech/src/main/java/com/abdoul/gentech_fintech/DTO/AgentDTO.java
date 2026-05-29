@@ -20,7 +20,7 @@ public class AgentDTO {
 
     @Getter
     @Setter
-    public static class Deposit{
+    public static class DepositWith{
         @DecimalMin(value = "0.1", message = "Amount must greater than or equal to 0.1")
         @DecimalMax(value = "10000", message = "Amount must be less than 10000")
         @Digits(fraction = 2, integer = 5)

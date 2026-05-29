@@ -28,7 +28,7 @@ public class AgentController {
     }
 
     @PostMapping("/deposit")
-    public ResponseEntity<Map<String, String>> deposit(HttpServletRequest request, @Valid @RequestBody AgentDTO.Deposit data){
+    public ResponseEntity<Map<String, String>> deposit(HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(agentService.deposit(data, currentUser));
     }
