@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/agents")
 public class AgentController {
     private final AgentService agentService;
     public AgentController(AgentService agentService){
@@ -25,6 +25,5 @@ public class AgentController {
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(agentService.getUserCredentials(data, currentUser));
     }
-
 
 }
