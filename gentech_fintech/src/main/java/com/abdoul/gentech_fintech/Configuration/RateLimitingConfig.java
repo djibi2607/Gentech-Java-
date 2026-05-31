@@ -16,7 +16,7 @@ public class RateLimitingConfig {
         reg.addUrlPatterns("/api/agents/deposit-with-2-fa");
         reg.addUrlPatterns("/api/agents/withdraw");
         reg.addUrlPatterns("/api/agents/withdraw-with-2-fa");
-        reg.addUrlPatterns("/api/agents/unflagged");
+        reg.addUrlPatterns("/api/agents/flag");
         reg.setOrder(2);
 
         return reg;
