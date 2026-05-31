@@ -8,6 +8,7 @@ import com.abdoul.gentech_fintech.Models.AuditLogs;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
+import com.abdoul.gentech_fintech.Util.Resend;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -17,10 +18,12 @@ import java.util.Map;
 public class AdminService {
     private final UserRepository userRepository;
     private final LogRepository logRepository;
+    private final Resend resend;
 
-    public AdminService(UserRepository userRepository, LogRepository logRepository){
+    public AdminService(UserRepository userRepository, LogRepository logRepository, Resend resend){
         this.userRepository = userRepository;
         this.logRepository = logRepository;
+        this.resend = resend;
     }
 
     public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser){
@@ -59,6 +62,8 @@ public class AdminService {
         newLog.setUser(currentUser);
         newLog.setAction("Admin has unflagged user with id " + user.getId());
         logRepository.save(newLog);
+
+        resend.UnflagEmail(user.getName(), "The flag on your account has been lifted");
 
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", user.getName() + " has been unflagged");
