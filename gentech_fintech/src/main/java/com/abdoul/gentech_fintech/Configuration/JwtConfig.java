@@ -19,6 +19,8 @@ public class JwtConfig {
 
         reg.setFilter(jwtFilter);
         reg.addUrlPatterns("/api/users/getBalance");
+        reg.addUrlPatterns("/api/agents/*");
+        reg.addUrlPatterns("/api/admin/*");
         reg.setOrder(1);
 
         return reg;
