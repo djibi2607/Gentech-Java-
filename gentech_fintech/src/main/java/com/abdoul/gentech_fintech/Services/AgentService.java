@@ -11,11 +11,9 @@ import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sound.sampled.AudioInputStream;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
