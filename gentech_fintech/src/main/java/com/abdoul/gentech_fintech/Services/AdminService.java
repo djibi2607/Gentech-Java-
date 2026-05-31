@@ -31,7 +31,7 @@ public class AdminService {
             user = userRepository.findById(data.getId()).orElse(null);
         }
 
-        if (data.getEmail() != null || data.getPhone() != null){
+        else if (data.getEmail() != null || data.getPhone() != null){
             user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
         }
 
