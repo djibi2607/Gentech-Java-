@@ -36,5 +36,9 @@ public class AdminController {
         return ResponseEntity.ok().body(adminService.deleteUser(data, currentUser));
     }
 
-
+    @PatchMapping("/demote-agent")
+    public ResponseEntity<Map<String, String>> demoteAgent (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(adminService.demoteAgent(data, currentUser));
+    }
 }
