@@ -21,7 +21,7 @@ public class KycRemainder {
         this.resend = resend;
     }
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 20 * * *")
     private void sendKycRemainder (){
         List<KycModel> kycs = kycRepository.findKyc(ZonedDateTime.now(ZoneId.of("UTC")).minusDays(10), KycStatus.Pending);
         kycs.forEach(kyc ->{
