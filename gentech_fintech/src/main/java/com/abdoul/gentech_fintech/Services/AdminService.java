@@ -192,7 +192,7 @@ public class AdminService {
             throw new BadRequestException("Page must be greater than 0");
         }
 
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size);
 
         Page<UserModel> users = userRepository.findAll(pageable);
 

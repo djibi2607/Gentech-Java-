@@ -4,6 +4,7 @@ import com.abdoul.gentech_fintech.DTO.AdminDTO;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.AdminService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,5 +47,11 @@ public class AdminController {
     public ResponseEntity<AdminDTO.UserCredentials> getUserDetails (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(adminService.getUserDetails(currentUser, data));
+    }
+
+    @GetMapping("/get-all-users")
+    public ResponseEntity<Page<AdminDTO.AllUserDetails>> getAllUSers (@RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10")int size, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(adminService.getAllUsers(page, size, currentUser));
     }
 }
