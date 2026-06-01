@@ -1,5 +1,6 @@
 package com.abdoul.gentech_fintech.DTO;
 
+import com.abdoul.gentech_fintech.Models.AuditLogs;
 import com.abdoul.gentech_fintech.Models.KycModel;
 import com.abdoul.gentech_fintech.Models.TransactionModel;
 import com.abdoul.gentech_fintech.Models.TwoFactorModel;
@@ -36,5 +37,6 @@ public class AdminDTO {
         private List<TransactionModel> transactionsReceived;
         private List<KycModel> kycModels;
         private TwoFactorModel twoFactorModel;
+        private List<AuditLogs> userLogs;
     }
 }

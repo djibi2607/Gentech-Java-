@@ -157,6 +157,7 @@ public class AdminService {
         requireAdmin(currentUser);
         UserModel user = findUser(data);
 
+
         AdminDTO.UserCredentials details = new AdminDTO.UserCredentials();
         details.setId(user.getId());
         details.setName(user.getName());
@@ -171,6 +172,12 @@ public class AdminService {
         details.setTransactionsReceived(user.getTransactionsReceived());
         details.setKycModels(user.getKyc());
         details.setTwoFactorModel(user.getTwoFactor());
+        details.setUserLogs(user.getLogs());
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("Admin " + currentUser.getId() + " viewed credentials of user " + user.getId());
+        newLog.setUser(currentUser);
+        logRepository.save(newLog);
 
         return details;
     }
