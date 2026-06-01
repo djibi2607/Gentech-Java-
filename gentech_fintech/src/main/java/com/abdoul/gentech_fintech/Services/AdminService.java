@@ -11,9 +11,8 @@ import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Util.Resend;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -28,7 +27,7 @@ public class AdminService {
         this.logRepository = logRepository;
         this.resend = resend;
     }
-
+    @Transactional
     public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser){
 
         UserModel user = null;
@@ -74,6 +73,7 @@ public class AdminService {
         return response;
     }
 
+    @Transactional
     public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser){
         UserModel user = null;
 

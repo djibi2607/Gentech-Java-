@@ -6,10 +6,7 @@ import com.abdoul.gentech_fintech.Services.AgentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -51,7 +48,7 @@ public class AgentController {
         return ResponseEntity.ok().body(agentService.withdrawWith2fa(data, currentUser));
     }
 
-    @PostMapping("/flag")
+    @PatchMapping("/flag")
     public ResponseEntity<Map<String, String>> flagUser (HttpServletRequest request, @Valid @RequestBody AgentDTO.Flag data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(agentService.flagUser(data, currentUser));
