@@ -30,29 +30,8 @@ public class AdminService {
     @Transactional
     public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser){
 
-        UserModel user = null;
-
-        if (data.getId() != null){
-            user = userRepository.findById(data.getId()).orElse(null);
-        }
-
-        else if (data.getEmail() != null || data.getPhone() != null){
-            user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
-        }
-
-        if (user == null){
-            throw new NotFoundException("User not found");
-        }
-
-        if (!currentUser.getRole().equals("admin")){
-            currentUser.setFlagged(true);
-            userRepository.save(currentUser);
-            AuditLogs newLog = new AuditLogs();
-            newLog.setUser(currentUser);
-            newLog.setAction("User has been flagged for attempting to unflag user with id " + user.getId());
-            logRepository.save(newLog);
-            throw new ForbiddenException("Your account has been flagged.");
-        }
+        requireAdmin(currentUser);
+        UserModel user = findUser(data);
 
         if (!user.isFlagged()){
             throw new BadRequestException("User account is not flagged");
@@ -75,29 +54,8 @@ public class AdminService {
 
     @Transactional
     public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser){
-        UserModel user = null;
-
-        if (data.getId() != null){
-            user = userRepository.findById(data.getId()).orElse(null);
-        }
-
-        else if (data.getEmail() != null || data.getPhone() != null){
-            user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
-        }
-
-        if (user == null || user.isDeleted()){
-            throw new NotFoundException("User not found");
-        }
-
-        if (!currentUser.getRole().equals("admin")){
-            currentUser.setFlagged(true);
-            userRepository.save(currentUser);
-            AuditLogs newLog = new AuditLogs();
-            newLog.setUser(currentUser);
-            newLog.setAction("User has been flagged for attempting to unflag user with id " + user.getId());
-            logRepository.save(newLog);
-            throw new ForbiddenException("Your account has been flagged.");
-        }
+        requireAdmin(currentUser);
+        UserModel user = findUser(data);
 
         if (user.isFlagged()){
             throw new BadRequestException("User account is flagged");
@@ -121,6 +79,53 @@ public class AdminService {
         response.put("notice", "User has successfully been promoted to agents");
 
         return response;
+    }
+
+    public Map<String, String> deleteUser (AdminDTO.Unflag data, UserModel currentUser){
+        requireAdmin(currentUser);
+        UserModel user = findUser(data);
+        user.setDeleted(true);
+        userRepository.save(user);
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Account successfully deleted");
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("Admin " + currentUser.getId() + " has deleted user " + user.getId());
+        newLog.setUser(currentUser);
+        logRepository.save(newLog);
+
+        return response;
+    }
+
+    private UserModel findUser (AdminDTO.Unflag data){
+        UserModel user = null;
+
+        if (data.getId() != null){
+            user = userRepository.findById(data.getId()).orElse(null);
+        }
+
+        else if (data.getEmail() != null || data.getPhone() != null){
+            user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
+        }
+
+        if (user == null || user.isDeleted()){
+            throw new NotFoundException("User not found");
+        }
+
+        return user;
+    }
+
+    private void requireAdmin(UserModel currentUser) {
+        if (!currentUser.getRole().equals("admin")) {
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("User flagged for attempting unauthorized admin action");
+            logRepository.save(newLog);
+            throw new ForbiddenException("Your account has been flagged.");
+        }
     }
 
 
