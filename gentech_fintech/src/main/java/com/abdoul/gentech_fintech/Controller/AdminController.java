@@ -27,6 +27,10 @@ public class AdminController {
         return ResponseEntity.ok().body(adminService.unflagUser(data, currentUser));
     }
 
-
+    @PostMapping("/promote-agent")
+    public ResponseEntity<Map<String, String>> promoteAgent(@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(adminService.promoteAgent(data, currentUser));
+    }
 
 }
