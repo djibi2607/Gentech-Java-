@@ -102,4 +102,24 @@ public class Resend {
                 .doOnError(error -> log.error("Email failed {}", error.getMessage(), error))
                 .subscribe();
     }
+
+    public void sendKycRemainder (String name, String subject){
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("from", "Acme <onboarding@resend.dev>");
+        body.put("to", myEmail);
+        body.put("subject", subject);
+        body.put("html", "<p style=\"text-align: center;\"><strong>" + subject + "</strong></p>" +
+                "<p>Hello " + name + ", your account will be deactivated in 4 days without further notice if identification documents are not submitted </p>" +
+                "<p>&nbsp;</p>" +
+                "<p>Thank you,<br>The Gentech Team.</p>");
+
+        webClient.post()
+                .uri("/emails")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(String.class)
+                .retry(3L)
+                .doOnError(error -> log.error("Email failed {}", error.getMessage(), error))
+                .subscribe();
+    }
 }
