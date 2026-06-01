@@ -81,6 +81,7 @@ public class AdminService {
         return response;
     }
 
+    @Transactional
     public Map<String, String> deleteUser (AdminDTO.Unflag data, UserModel currentUser){
         requireAdmin(currentUser);
         UserModel user = findUser(data);
@@ -116,6 +117,7 @@ public class AdminService {
         return user;
     }
 
+    @Transactional
     private void requireAdmin(UserModel currentUser) {
         if (!currentUser.getRole().equals("admin")) {
             currentUser.setFlagged(true);
@@ -127,6 +129,30 @@ public class AdminService {
             throw new ForbiddenException("Your account has been flagged.");
         }
     }
+
+    @Transactional
+    public Map<String, String> demoteAgent (AdminDTO.Unflag data, UserModel currentUser){
+        requireAdmin(currentUser);
+        UserModel user = findUser(data);
+
+        if (!user.getRole().equals("agents")){
+            throw new BadRequestException("User is not an agent");
+        }
+
+        user.setRole("users");
+        userRepository.save(user);
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Account successfully demoted to user");
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("Admin " + currentUser.getId() + " has demoted agent with id " + user.getId() + " to user");
+        newLog.setUser(currentUser);
+        logRepository.save(newLog);
+
+        return response;
+    }
+
 
 
 }
