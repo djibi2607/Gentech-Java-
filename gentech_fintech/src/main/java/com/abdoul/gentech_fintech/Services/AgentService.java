@@ -1,6 +1,5 @@
 package com.abdoul.gentech_fintech.Services;
 
-import com.abdoul.gentech_fintech.Configuration.KycType;
 import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.AgentDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
@@ -122,7 +121,7 @@ public class AgentService {
             throw new ForbiddenException("Unauthorized");
         }
 
-        WalletModel userWallet = walletRepository.findById(data.getWalletId()).orElse(null);
+        WalletModel userWallet = walletRepository.findByIdWithLock(data.getWalletId());
 
         if (userWallet == null){
             throw new NotFoundException("Wallet not found");
@@ -187,7 +186,7 @@ public class AgentService {
             throw new RuntimeException("User not found");
         }
 
-        WalletModel userWallet = walletRepository.findById(user.getWallet().getId()).orElse(null);
+        WalletModel userWallet = walletRepository.findByIdWithLock(user.getWallet().getId());
 
         if (userWallet == null){
             throw new NotFoundException("Wallet not found");
@@ -251,7 +250,7 @@ public class AgentService {
             throw new ForbiddenException("Unauthorized");
         }
 
-        WalletModel userWallet = walletRepository.findById(data.getWalletId()).orElse(null);
+        WalletModel userWallet = walletRepository.findByIdWithLock(data.getWalletId());
 
         if (userWallet == null){
             throw new NotFoundException("Wallet not found");
@@ -320,7 +319,7 @@ public class AgentService {
             throw new RuntimeException("User not found");
         }
 
-        WalletModel userWallet = walletRepository.findById(user.getWallet().getId()).orElse(null);
+        WalletModel userWallet = walletRepository.findByIdWithLock(user.getWallet().getId());
 
         if (userWallet == null){
             throw new NotFoundException("Wallet not found");
