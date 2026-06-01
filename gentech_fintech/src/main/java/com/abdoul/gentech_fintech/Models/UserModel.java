@@ -74,4 +74,10 @@ public class UserModel {
     @OneToOne(mappedBy = "user")
     private WalletModel wallet;
 
+    @OneToMany(mappedBy = "senderWallet")
+    private List<TransactionModel> transactionsSent;
+
+    @OneToMany(mappedBy = "receiverWallet")
+    private List<TransactionModel> transactionsReceived;
+
 }

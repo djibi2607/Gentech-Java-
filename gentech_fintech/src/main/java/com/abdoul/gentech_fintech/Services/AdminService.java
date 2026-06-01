@@ -153,6 +153,26 @@ public class AdminService {
         return response;
     }
 
+    public AdminDTO.UserCredentials getUserDetails (UserModel currentUser, AdminDTO.Unflag data){
+        requireAdmin(currentUser);
+        UserModel user = findUser(data);
 
+        AdminDTO.UserCredentials details = new AdminDTO.UserCredentials();
+        details.setId(user.getId());
+        details.setName(user.getName());
+        details.setEmail(user.getEmail());
+        details.setPhone(user.getPhone());
+        details.setRole(user.getRole());
+        details.setFlagged(user.isFlagged());
+        details.setDeleted(user.isDeleted());
+        details.setBalance(user.getWallet().getBalance());
+        details.setCreatedAt(user.getCreatedAt());
+        details.setTransactionsSent(user.getTransactionsSent());
+        details.setTransactionsReceived(user.getTransactionsReceived());
+        details.setKycModels(user.getKyc());
+        details.setTwoFactorModel(user.getTwoFactor());
+
+        return details;
+    }
 
 }
