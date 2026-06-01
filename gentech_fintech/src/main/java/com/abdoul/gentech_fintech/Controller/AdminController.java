@@ -41,4 +41,10 @@ public class AdminController {
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(adminService.demoteAgent(data, currentUser));
     }
+
+    @PostMapping("/get-credentials")
+    public ResponseEntity<AdminDTO.UserCredentials> getUserDetails (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(adminService.getUserDetails(currentUser, data));
+    }
 }
