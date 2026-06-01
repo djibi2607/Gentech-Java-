@@ -30,4 +30,11 @@ public class AdminController {
         return ResponseEntity.ok().body(adminService.promoteAgent(data, currentUser));
     }
 
+    @DeleteMapping("/delete")
+    public ResponseEntity<Map<String, String>> deleteUser (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(adminService.deleteUser(data, currentUser));
+    }
+
+
 }
