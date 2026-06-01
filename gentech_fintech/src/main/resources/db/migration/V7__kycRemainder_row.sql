@@ -1,0 +1,1 @@
+alter table kycs add column kyc_remainder boolean not null default false;
