@@ -111,6 +111,7 @@ public class AgentService {
 
         response.put("name", user.getName());
         response.put("wallet-id", String.valueOf(user.getWallet().getId()));
+        response.put("user-id", String.valueOf(user.getId()));
 
         return response;
     }

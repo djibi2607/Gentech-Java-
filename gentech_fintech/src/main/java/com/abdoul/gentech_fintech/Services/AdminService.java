@@ -1,5 +1,6 @@
 package com.abdoul.gentech_fintech.Services;
 
+import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import com.abdoul.gentech_fintech.DTO.AdminDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
 import com.abdoul.gentech_fintech.Exceptions.ForbiddenException;
@@ -11,6 +12,8 @@ import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Util.Resend;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -67,6 +70,55 @@ public class AdminService {
 
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", user.getName() + " has been unflagged");
+
+        return response;
+    }
+
+    public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser){
+        UserModel user = null;
+
+        if (data.getId() != null){
+            user = userRepository.findById(data.getId()).orElse(null);
+        }
+
+        else if (data.getEmail() != null || data.getPhone() != null){
+            user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
+        }
+
+        if (user == null || user.isDeleted()){
+            throw new NotFoundException("User not found");
+        }
+
+        if (!currentUser.getRole().equals("admin")){
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("User has been flagged for attempting to unflag user with id " + user.getId());
+            logRepository.save(newLog);
+            throw new ForbiddenException("Your account has been flagged.");
+        }
+
+        if (user.isFlagged()){
+            throw new BadRequestException("User account is flagged");
+        }
+
+        boolean kycVerified = user.getKyc().stream().allMatch(kyc -> kyc.getStatus().equals(KycStatus.Completed));
+
+        if (!kycVerified){
+            throw new BadRequestException("User must complete KYC before being promoted");
+        }
+
+        user.setRole("agents");
+        userRepository.save(user);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("Admin " + currentUser.getId() + " has promoted user " + user.getId() + " to agent");
+        newLog.setUser(currentUser);
+        logRepository.save(newLog);
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "User has successfully been promoted to agents");
 
         return response;
     }
