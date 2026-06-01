@@ -1,10 +1,7 @@
 package com.abdoul.gentech_fintech.DTO;
 
 import jakarta.persistence.Column;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -29,7 +26,7 @@ public class AgentDTO {
         @NotBlank(message = "Description field can't be blank")
         private String description;
 
-        @NotBlank(message = "Enter the wallet id")
+        @NotNull(message = "Enter the wallet id")
         private Long walletId;
     }
 

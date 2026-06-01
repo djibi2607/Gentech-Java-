@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "wallets", indexes = {
@@ -36,4 +37,10 @@ public class WalletModel {
     private void onCreate (){
         this.createdAt = ZonedDateTime.now(ZoneId.of("UTC"));
     }
+
+    @OneToMany(mappedBy = "senderWallet")
+    private List<TransactionModel> transactionsSent;
+
+    @OneToMany(mappedBy = "receiverWallet")
+    private List<TransactionModel> transactionsReceived;
 }

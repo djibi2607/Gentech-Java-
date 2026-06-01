@@ -171,8 +171,8 @@ public class AdminService {
         details.setDeleted(user.isDeleted());
         details.setBalance(user.getWallet().getBalance());
         details.setCreatedAt(user.getCreatedAt());
-        details.setTransactionsSent(user.getTransactionsSent());
-        details.setTransactionsReceived(user.getTransactionsReceived());
+        details.setTransactionsSent(user.getWallet().getTransactionsSent());
+        details.setTransactionsReceived(user.getWallet().getTransactionsReceived());
         details.setKycModels(user.getKyc());
         details.setTwoFactorModel(user.getTwoFactor());
         details.setUserLogs(user.getLogs());
