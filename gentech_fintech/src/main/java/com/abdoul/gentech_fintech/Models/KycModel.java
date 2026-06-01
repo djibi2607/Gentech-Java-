@@ -42,5 +42,7 @@ public class KycModel {
     protected void onCreate() {
         this.submittedAt = ZonedDateTime.now(ZoneId.of("UTC"));
     }
+
+    private boolean kycRemainder = false;
 }
 
