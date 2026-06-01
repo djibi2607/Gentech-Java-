@@ -10,6 +10,9 @@ import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Util.Resend;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -182,4 +185,29 @@ public class AdminService {
         return details;
     }
 
+    public Page<AdminDTO.AllUserDetails> getAllUsers (int page, int size, UserModel currentUser){
+        requireAdmin(currentUser);
+
+        if (page < 1){
+            throw new BadRequestException("Page must be greater than 0");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<UserModel> users = userRepository.findAll(pageable);
+
+        return users.map(user -> {
+            AdminDTO.AllUserDetails details = new AdminDTO.AllUserDetails();
+            details.setId(user.getId());
+            details.setName(user.getName());
+            details.setEmail(user.getEmail());
+            details.setRole(user.getRole());
+            details.setPhone(user.getPhone());
+            details.setDeleted(user.isDeleted());
+            details.setFlagged(user.isFlagged());
+            details.setCreatedAt(user.getCreatedAt());
+            details.setBalance(user.getWallet().getBalance());
+            return details;
+        });
+    }
 }

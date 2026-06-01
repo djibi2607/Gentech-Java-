@@ -39,4 +39,19 @@ public class AdminDTO {
         private TwoFactorModel twoFactorModel;
         private List<AuditLogs> userLogs;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class AllUserDetails {
+        private Long id;
+        private String name;
+        private String email;
+        private String phone;
+        private String role;
+        private boolean flagged;
+        private boolean deleted;
+        private BigDecimal balance;
+        private ZonedDateTime createdAt;
+    }
 }
