@@ -122,4 +122,27 @@ public class Resend {
                 .doOnError(error -> log.error("Email failed {}", error.getMessage(), error))
                 .subscribe();
     }
+
+    public void sendDailyReports (Long deposit, Long withdraw, Long transfer, BigDecimal amount, String subject){
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("from", "Acme <onboarding@resend.dev>");
+        body.put("to", myEmail);
+        body.put("subject", subject);
+        body.put("html", "<p style=\"text-align: center;\"><strong>" + subject + "</strong></p>" +
+                "<p>Hello , the total amount of deposits made today is:" + deposit +  "</p>" +
+                "<p> The total amount of withdrawals made is:" + withdraw + "</p>" +
+                "<p> The total amount of transfers made is:" + transfer + "</p>" +
+                "<p> The total amount that moved today is:" + amount + "</p>" +
+                "<p>&nbsp;</p>" +
+                "<p>Thank you,<br>The Gentech Team.</p>");
+
+        webClient.post()
+                .uri("/emails")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(String.class)
+                .retry(3L)
+                .doOnError(error -> log.error("Email failed {}", error.getMessage(), error))
+                .subscribe();
+    }
 }
