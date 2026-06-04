@@ -1,14 +1,14 @@
-package com.abdoul.gentech_fintech.ScheduledJobs;
+package com.abdoul.gentech_fintech.Util;
 
 import com.abdoul.gentech_fintech.Models.AuditLogs;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
-import com.abdoul.gentech_fintech.Util.IpUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -32,16 +32,16 @@ public class FraudDetection extends OncePerRequestFilter{
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
 
-        String ip = request.getRemoteAddr();
+        String myIp = request.getRemoteAddr();
 
-        Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> infos = ipUtil.getIpDetails(myIp);
 
         if (currentUser == null){
             filterChain.doFilter(request, response);
             return;
         }
 
-        AuditLogs LastLog = logRepository.findTopByUserOrderByCreatedAtDesc(currentUser);
+        AuditLogs LastLog = logRepository.findTopByUserOrderByInitiatedAtDesc(currentUser);
 
         if (LastLog == null || LastLog.getCountry() == null){
             filterChain.doFilter(request, response);

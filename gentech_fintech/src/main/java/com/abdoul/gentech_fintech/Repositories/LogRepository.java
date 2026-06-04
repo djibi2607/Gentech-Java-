@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LogRepository extends JpaRepository<AuditLogs, Long> {
-    AuditLogs findTopByUserOrderByCreatedAtDesc (UserModel user);
+    AuditLogs findTopByUserOrderByInitiatedAtDesc (UserModel user);
 }

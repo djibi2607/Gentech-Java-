@@ -3,6 +3,7 @@ package com.abdoul.gentech_fintech.Controller;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
