@@ -9,6 +9,7 @@ import com.abdoul.gentech_fintech.Exceptions.JwtException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
 import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
+import com.abdoul.gentech_fintech.Util.IpUtil;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
@@ -35,8 +36,9 @@ public class UserService {
     private final KycRepository kycRepository;
     private final TwoFactorUtil twoFactor;
     private final TwoFactorRepository twoFactorRepository;
+    private final IpUtil ipUtil;
 
-    public UserService (UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
+    public UserService (IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
@@ -47,10 +49,11 @@ public class UserService {
         this.kycRepository = kycRepository;
         this.twoFactor = twoFactor;
         this.twoFactorRepository = twoFactorRepository;
+        this.ipUtil = ipUtil;
     }
 
     @Transactional
-    public Map<String, String> createAccount(UserDTO.SignUp data){
+    public Map<String, String> createAccount(UserDTO.SignUp data, String ip){
         try {
             if (data.getEmail() == null && data.getPhone() == null) {
                 throw new BadRequestException("You must enter an email or phone number");
@@ -61,6 +64,8 @@ public class UserService {
             if (existingUser != null && !existingUser.isDeleted()) {
                 throw new ConflictException("Account already exists");
             }
+
+            Map<String, String> infos = ipUtil.getIpDetails(ip);
 
             UserModel newUser = new UserModel();
             newUser.setName(data.getName());
@@ -99,6 +104,10 @@ public class UserService {
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(newUser);
             newLog.setAction("User created his Gentech account");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
 
             logRepository.save(newLog);
 
@@ -112,7 +121,7 @@ public class UserService {
     }
 
     @Transactional
-    public Map<String, String> logIn (UserDTO.Login data){
+    public Map<String, String> logIn (UserDTO.Login data, String ip){
         if (data.getEmail() == null && data.getPhone() == null){
             throw new BadRequestException("You must enter an email or phone number");
         }
@@ -126,6 +135,8 @@ public class UserService {
         if (!encoder.matches(data.getPassword(), currentUser.getPassword())) {
             throw new BadRequestException("Invalid credentials");
         }
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
 
         Map<String, String> response = new LinkedHashMap<>();
 
@@ -167,11 +178,15 @@ public class UserService {
             response.put("notice", "A verification code has been sent to your email");
             response.put("temporary token", temporaryToken);
 
-            AuditLogs newLogs = new AuditLogs();
-            newLogs.setUser(currentUser);
-            newLogs.setAction("User received an email containing a verification code to login with 2fa");
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("User received an email containing a verification code to login with 2fa");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
 
-            logRepository.save(newLogs);
+            logRepository.save(newLog);
 
             return response;
 
@@ -190,6 +205,10 @@ public class UserService {
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("User logged in with 2fa disabled");
         newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
 
         logRepository.save(newLog);
 
@@ -202,10 +221,12 @@ public class UserService {
     }
 
     @Transactional
-    public Map<String, String> loginWith2fa (UserDTO.LoginWith2fa data){
+    public Map<String, String> loginWith2fa (UserDTO.LoginWith2fa data, String ip){
         if (!jwtUtil.isTokenValid(data.getToken())){
             throw new JwtException("Invalid credentials");
         }
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
 
         Long id = Long.parseLong(jwtUtil.extractIdFromToken(data.getToken()));
 
@@ -220,6 +241,10 @@ public class UserService {
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("Failed login attempt for expired code");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new BadRequestException("Expired code");
         }
@@ -228,6 +253,10 @@ public class UserService {
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("Failed login attempt for wrong verification code");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new BadRequestException("Invalid code");
         }
@@ -237,6 +266,10 @@ public class UserService {
         AuditLogs newLog = new AuditLogs();
         newLog.setUser(currentUser);
         newLog.setAction("User successfully logged in with 2fa factor");
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         String accessToken = jwtUtil.createAccessToken(id);
