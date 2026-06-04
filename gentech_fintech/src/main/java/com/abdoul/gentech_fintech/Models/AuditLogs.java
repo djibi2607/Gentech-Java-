@@ -32,4 +32,12 @@ public class AuditLogs {
     @ManyToOne
     @JoinColumn(name = "logs_user")
     private UserModel user;
+
+    private String country;
+
+    private String city;
+
+    private String latitude;
+
+    private String longitude;
 }

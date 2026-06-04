@@ -1,0 +1,5 @@
+ALTER TABLE audit_logs
+    ADD COLUMN country VARCHAR(100),
+ADD COLUMN city VARCHAR(100),
+ADD COLUMN latitude VARCHAR(50),
+ADD COLUMN longitude VARCHAR(50);
