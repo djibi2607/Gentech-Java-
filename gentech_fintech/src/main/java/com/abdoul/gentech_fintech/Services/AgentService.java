@@ -7,6 +7,7 @@ import com.abdoul.gentech_fintech.Exceptions.ForbiddenException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
 import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
+import com.abdoul.gentech_fintech.Util.IpUtil;
 import com.abdoul.gentech_fintech.Util.JwtUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
@@ -31,8 +32,9 @@ public class AgentService {
     private final TwoFactorRepository twoFactorRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final IpUtil ipUtil;
 
-    public AgentService (UserRepository userRepository, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
+    public AgentService (UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
         this.userRepository = userRepository;
         this.resend = resend;
         this.twoFactorUtil = twoFactorUtil;
@@ -41,15 +43,14 @@ public class AgentService {
         this.twoFactorRepository = twoFactorRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
+        this.ipUtil = ipUtil;
     }
 
     @Transactional
-    public Map<String, String> getUserCredentials (AgentDTO.UserCredentials data, UserModel currentUser){
+    public Map<String, String> getUserCredentials (AgentDTO.UserCredentials data, UserModel currentUser, String ip){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
-
-
 
         UserModel user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
 
@@ -61,12 +62,18 @@ public class AgentService {
             throw new BadRequestException("Unable to deposit into a flagged account");
         }
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         if (user.getId().equals(currentUser.getId())){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
             newLog.setAction("Agent has been flagged for trying to deposit in their own account");
             newLog.setUser(currentUser);
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new BadRequestException("Your account has been flagged");
         }
@@ -92,6 +99,10 @@ public class AgentService {
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction(currentUser.getRole() + "/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has requested a verification code to get the credentials for user with id " + user.getId());
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             Map<String, String> response = new LinkedHashMap<>();
 
@@ -107,6 +118,10 @@ public class AgentService {
         AuditLogs newLog = new AuditLogs();
         newLog.setUser(currentUser);
         newLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has requested to get the credentials for user with id " + user.getId());
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
         Map<String, String> response = new LinkedHashMap<>();
 
@@ -118,7 +133,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> deposit (AgentDTO.DepositWith data, UserModel currentUser){
+    public Map<String, String> deposit (AgentDTO.DepositWith data, UserModel currentUser, String ip){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -129,12 +144,18 @@ public class AgentService {
             throw new NotFoundException("Wallet not found");
         }
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("Agent has been flagged for attempting to deposit in their account");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -152,12 +173,20 @@ public class AgentService {
         walletRepository.save(userWallet);
 
         AuditLogs agentLog = new AuditLogs();
-        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has deposited $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet");
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has deposited $" + data.getAmount() + " into user with id " + userWallet.getUser().getId() + " wallet");
         agentLog.setUser(currentUser);
+        agentLog.setCity(infos.get("City"));
+        agentLog.setCountry(infos.get("Country"));
+        agentLog.setLongitude(infos.get("Longitude"));
+        agentLog.setLatitude(infos.get("Latitude"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
         userLog.setAction("User deposited $" + data.getAmount());
+        userLog.setCity(infos.get("City"));
+        userLog.setCountry(infos.get("Country"));
+        userLog.setLongitude(infos.get("Longitude"));
+        userLog.setLatitude(infos.get("Latitude"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
@@ -171,7 +200,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> depositWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser){
+    public Map<String, String> depositWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser, String ip){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -205,12 +234,18 @@ public class AgentService {
         userWallet.getUser().getTwoFactor().setRevoked(true);
         twoFactorRepository.save(userWallet.getUser().getTwoFactor());
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("Agent has been flagged for attempting to deposit in their account");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -228,12 +263,20 @@ public class AgentService {
         walletRepository.save(userWallet);
 
         AuditLogs agentLog = new AuditLogs();
-        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has deposited $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet with 2fa verification");
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has deposited $" + data.getAmount() + " into user with id " + userWallet.getUser().getId() + " wallet with 2fa verification");
         agentLog.setUser(currentUser);
+        agentLog.setCity(infos.get("City"));
+        agentLog.setCountry(infos.get("Country"));
+        agentLog.setLongitude(infos.get("Longitude"));
+        agentLog.setLatitude(infos.get("Latitude"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
         userLog.setAction("User deposited $" + data.getAmount());
+        userLog.setCity(infos.get("City"));
+        userLog.setCountry(infos.get("Country"));
+        userLog.setLongitude(infos.get("Longitude"));
+        userLog.setLatitude(infos.get("Latitude"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
@@ -247,7 +290,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> withdraw (AgentDTO.DepositWith data, UserModel currentUser){
+    public Map<String, String> withdraw (AgentDTO.DepositWith data, UserModel currentUser, String ip){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -258,12 +301,19 @@ public class AgentService {
             throw new NotFoundException("Wallet not found");
         }
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
+
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("Agent has been flagged for attempting to deposit in their account");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -285,18 +335,26 @@ public class AgentService {
         walletRepository.save(userWallet);
 
         AuditLogs agentLog = new AuditLogs();
-        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has withdrawn $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet");
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has withdrawn $" + data.getAmount() + " into user with id " + userWallet.getUser().getId() + " wallet");
         agentLog.setUser(currentUser);
+        agentLog.setCity(infos.get("City"));
+        agentLog.setCountry(infos.get("Country"));
+        agentLog.setLongitude(infos.get("Longitude"));
+        agentLog.setLatitude(infos.get("Latitude"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
         userLog.setAction("User withdrew $" + data.getAmount());
+        userLog.setCity(infos.get("City"));
+        userLog.setCountry(infos.get("Country"));
+        userLog.setLongitude(infos.get("Longitude"));
+        userLog.setLatitude(infos.get("Latitude"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
         logRepository.saveAll(logs);
 
-        resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdrawal has been made to your account", data.getAmount(), TransType.WITHDRAWAL);
+        resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdrawal has been made from your account", data.getAmount(), TransType.WITHDRAWAL);
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Withdrawal successful");
 
@@ -304,7 +362,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> withdrawWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser){
+    public Map<String, String> withdrawWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser, String ip){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -341,6 +399,8 @@ public class AgentService {
 
         userWallet.getUser().getTwoFactor().setRevoked(true);
         twoFactorRepository.save(userWallet.getUser().getTwoFactor());
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
 
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
@@ -348,6 +408,10 @@ public class AgentService {
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("Agent has been flagged for attempting to withdraw from their account");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -365,18 +429,26 @@ public class AgentService {
         walletRepository.save(userWallet);
 
         AuditLogs agentLog = new AuditLogs();
-        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has withdrawn $" + data.getAmount() + "into user with id " + userWallet.getUser().getId() + " wallet with 2fa verification");
+        agentLog.setAction("Agent/ " + currentUser.getName() + "/ " + currentUser.getEmail() + "/ " + currentUser.getPhone() + " has withdrawn $" + data.getAmount() + " into user with id " + userWallet.getUser().getId() + " wallet with 2fa verification");
         agentLog.setUser(currentUser);
+        agentLog.setCity(infos.get("City"));
+        agentLog.setCountry(infos.get("Country"));
+        agentLog.setLongitude(infos.get("Longitude"));
+        agentLog.setLatitude(infos.get("Latitude"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
         userLog.setAction("User withdrew $" + data.getAmount());
+        userLog.setCity(infos.get("City"));
+        userLog.setCountry(infos.get("Country"));
+        userLog.setLongitude(infos.get("Longitude"));
+        userLog.setLatitude(infos.get("Latitude"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
         logRepository.saveAll(logs);
 
-        resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdraw has been made to your account", data.getAmount(), TransType.WITHDRAWAL);
+        resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdrawal has been made from your account", data.getAmount(), TransType.WITHDRAWAL);
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Withdrawal successful");
 
@@ -384,7 +456,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> flagUser (AgentDTO.Flag data, UserModel currentUser){
+    public Map<String, String> flagUser (AgentDTO.Flag data, UserModel currentUser, String ip){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -395,7 +467,7 @@ public class AgentService {
             user = userRepository.findById(data.getId()).orElse(null);
         }
 
-        if (data.getEmail() != null || data.getPhone() != null){
+        else if (data.getEmail() != null || data.getPhone() != null){
             user = userRepository.findByEmailOrPhone(data.getEmail(), data.getPhone());
         }
 
@@ -408,10 +480,16 @@ public class AgentService {
             throw new BadRequestException("User is already flagged");
         }
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         if (user.getId().equals(currentUser.getId())){
             AuditLogs newLog = new AuditLogs();
             newLog.setAction("Agent attempted to flag his account");
             newLog.setUser(user);
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new ForbiddenException("Unauthorized");
         }
@@ -422,6 +500,10 @@ public class AgentService {
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Agent/ " + currentUser.getName() + "/" + currentUser.getEmail() + "/" + currentUser.getPhone() + " has flagged user with id " + user.getId());
         newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         Map<String,String> response = new LinkedHashMap<>();
