@@ -45,7 +45,7 @@ public class AgentService {
         this.userAgentUtil = userAgentUtil;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public Map<String, String> getUserCredentials (AgentDTO.UserCredentials data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
@@ -58,17 +58,17 @@ public class AgentService {
         }
 
         if (user.isFlagged()){
-            throw new BadRequestException("Unable to deposit into a flagged account");
+            throw new BadRequestException("Unable to make a transaction through a flagged account");
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
         Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
-        if (user.getId().equals(currentUser.getId())){
+        if (user.getId().equals(currentUser.getId()) && !currentUser.getRole().equals("admin")){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
-            newLog.setAction("Agent has been flagged for trying to deposit in their own account");
+            newLog.setAction("Agent has been flagged for trying to get their credentials");
             newLog.setUser(currentUser);
             newLog.setCity(infos.get("City"));
             newLog.setCountry(infos.get("Country"));
@@ -141,7 +141,7 @@ public class AgentService {
         return response;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ForbiddenException.class)
     public Map<String, String> deposit (AgentDTO.DepositWith data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
@@ -156,7 +156,7 @@ public class AgentService {
         Map<String, String> infos = ipUtil.getIpDetails(ip);
         Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
-        if (userWallet.getId().equals(currentUser.getWallet().getId())){
+        if (userWallet.getId().equals(currentUser.getWallet().getId()) && !currentUser.getRole().equals("admin")){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
@@ -319,7 +319,7 @@ public class AgentService {
         return response;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ForbiddenException.class)
     public Map<String, String> withdraw (AgentDTO.DepositWith data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
@@ -335,7 +335,7 @@ public class AgentService {
         Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
 
-        if (userWallet.getId().equals(currentUser.getWallet().getId())){
+        if (userWallet.getId().equals(currentUser.getWallet().getId()) && !currentUser.getRole().equals("admin")){
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();

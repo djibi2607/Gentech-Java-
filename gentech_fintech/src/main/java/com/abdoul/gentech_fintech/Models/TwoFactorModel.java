@@ -1,5 +1,6 @@
 package com.abdoul.gentech_fintech.Models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ public class TwoFactorModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     private String code;
 
     private boolean revoked = false;
@@ -44,6 +46,7 @@ public class TwoFactorModel {
         this.revoked = false;
     }
 
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "two_factor_user")
     private UserModel user;

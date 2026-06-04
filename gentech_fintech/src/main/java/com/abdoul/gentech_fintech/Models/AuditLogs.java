@@ -1,5 +1,6 @@
 package com.abdoul.gentech_fintech.Models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,7 @@ public class AuditLogs {
         this.initiatedAt = ZonedDateTime.now(ZoneId.of("UTC"));
     }
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "logs_user")
     private UserModel user;
