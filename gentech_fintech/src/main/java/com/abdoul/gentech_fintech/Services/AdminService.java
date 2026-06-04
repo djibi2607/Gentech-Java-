@@ -9,6 +9,7 @@ import com.abdoul.gentech_fintech.Models.AuditLogs;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
+import com.abdoul.gentech_fintech.Util.IpUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,27 +25,35 @@ public class AdminService {
     private final UserRepository userRepository;
     private final LogRepository logRepository;
     private final Resend resend;
+    private final IpUtil ipUtil;
 
-    public AdminService(UserRepository userRepository, LogRepository logRepository, Resend resend){
+    public AdminService(UserRepository userRepository, LogRepository logRepository, Resend resend, IpUtil ipUtil){
         this.userRepository = userRepository;
         this.logRepository = logRepository;
         this.resend = resend;
+        this.ipUtil = ipUtil;
     }
     @Transactional
-    public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser){
+    public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser, String ip){
 
-        requireAdmin(currentUser);
+        requireAdmin(currentUser, ip);
         UserModel user = findUser(data);
 
         if (!user.isFlagged()){
             throw new BadRequestException("User account is not flagged");
         }
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         user.setFlagged(false);
         userRepository.save(user);
         AuditLogs newLog = new AuditLogs();
         newLog.setUser(currentUser);
         newLog.setAction("Admin has unflagged user with id " + user.getId());
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         resend.UnflagEmail(user.getName(), "The flag on your account has been lifted");
@@ -56,8 +65,8 @@ public class AdminService {
     }
 
     @Transactional
-    public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser){
-        requireAdmin(currentUser);
+    public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser, String ip){
+        requireAdmin(currentUser, ip);
         UserModel user = findUser(data);
 
         if (user.isFlagged()){
@@ -70,12 +79,18 @@ public class AdminService {
             throw new BadRequestException("User must complete KYC before being promoted");
         }
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         user.setRole("agents");
         userRepository.save(user);
 
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " has promoted user " + user.getId() + " to agent");
         newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         Map<String, String> response = new LinkedHashMap<>();
@@ -85,8 +100,8 @@ public class AdminService {
     }
 
     @Transactional
-    public Map<String, String> deleteUser (AdminDTO.Unflag data, UserModel currentUser){
-        requireAdmin(currentUser);
+    public Map<String, String> deleteUser (AdminDTO.Unflag data, UserModel currentUser, String ip){
+        requireAdmin(currentUser, ip);
         UserModel user = findUser(data);
         user.setDeleted(true);
         userRepository.save(user);
@@ -94,9 +109,15 @@ public class AdminService {
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Account successfully deleted");
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " has deleted user " + user.getId());
         newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         return response;
@@ -121,21 +142,26 @@ public class AdminService {
     }
 
     @Transactional
-    private void requireAdmin(UserModel currentUser) {
+    private void requireAdmin(UserModel currentUser, String ip) {
         if (!currentUser.getRole().equals("admin")) {
+            Map<String, String> infos = ipUtil.getIpDetails(ip);
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
             newLog.setUser(currentUser);
             newLog.setAction("User flagged for attempting unauthorized admin action");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged.");
         }
     }
 
     @Transactional
-    public Map<String, String> demoteAgent (AdminDTO.Unflag data, UserModel currentUser){
-        requireAdmin(currentUser);
+    public Map<String, String> demoteAgent (AdminDTO.Unflag data, UserModel currentUser, String ip){
+        requireAdmin(currentUser, ip);
         UserModel user = findUser(data);
 
         if (!user.getRole().equals("agents")){
@@ -148,16 +174,22 @@ public class AdminService {
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Account successfully demoted to user");
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " has demoted agent with id " + user.getId() + " to user");
         newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         return response;
     }
 
-    public AdminDTO.UserCredentials getUserDetails (UserModel currentUser, AdminDTO.Unflag data){
-        requireAdmin(currentUser);
+    public AdminDTO.UserCredentials getUserDetails (UserModel currentUser, AdminDTO.Unflag data, String ip){
+        requireAdmin(currentUser, ip);
         UserModel user = findUser(data);
 
 
@@ -177,16 +209,22 @@ public class AdminService {
         details.setTwoFactorModel(user.getTwoFactor());
         details.setUserLogs(user.getLogs());
 
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " viewed credentials of user " + user.getId());
         newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
         logRepository.save(newLog);
 
         return details;
     }
 
-    public Page<AdminDTO.AllUserDetails> getAllUsers (int page, int size, UserModel currentUser){
-        requireAdmin(currentUser);
+    public Page<AdminDTO.AllUserDetails> getAllUsers (int page, int size, UserModel currentUser, String ip){
+        requireAdmin(currentUser, ip);
 
         if (page < 1){
             throw new BadRequestException("Page must be greater than 0");
