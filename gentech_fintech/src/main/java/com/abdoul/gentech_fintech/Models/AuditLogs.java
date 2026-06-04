@@ -40,4 +40,10 @@ public class AuditLogs {
     private String latitude;
 
     private String longitude;
+
+    private String device;
+
+    private String os;
+
+    private String browser;
 }

@@ -23,41 +23,47 @@ public class AdminController {
     public ResponseEntity<Map<String, String>> unflagUser (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(adminService.unflagUser(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(adminService.unflagUser(data, currentUser, ip, device));
     }
 
     @PatchMapping("/promote-agent")
     public ResponseEntity<Map<String, String>> promoteAgent(@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(adminService.promoteAgent(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(adminService.promoteAgent(data, currentUser, ip, device));
     }
 
     @DeleteMapping("/delete")
     public ResponseEntity<Map<String, String>> deleteUser (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(adminService.deleteUser(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(adminService.deleteUser(data, currentUser, ip, device));
     }
 
     @PatchMapping("/demote-agent")
     public ResponseEntity<Map<String, String>> demoteAgent (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(adminService.demoteAgent(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(adminService.demoteAgent(data, currentUser, ip, device));
     }
 
     @PostMapping("/get-credentials")
     public ResponseEntity<AdminDTO.UserCredentials> getUserDetails (@RequestBody AdminDTO.Unflag data, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(adminService.getUserDetails(currentUser, data, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(adminService.getUserDetails(currentUser, data, ip, device));
     }
 
     @GetMapping("/get-all-users")
     public ResponseEntity<Page<AdminDTO.AllUserDetails>> getAllUSers (@RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10")int size, HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(adminService.getAllUsers(page, size, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(adminService.getAllUsers(page, size, currentUser, ip, device));
     }
 }

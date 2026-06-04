@@ -1,6 +1,6 @@
 package com.abdoul.gentech_fintech.Filter;
 
-import com.abdoul.gentech_fintech.Exceptions.JwtException;
+
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Util.JwtUtil;

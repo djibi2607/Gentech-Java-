@@ -22,42 +22,48 @@ public class AgentController {
     public ResponseEntity<Map<String, String>> getUserCredentials (HttpServletRequest request, @RequestBody AgentDTO.UserCredentials data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(agentService.getUserCredentials(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.getUserCredentials(data, currentUser, ip, device));
     }
 
     @PostMapping("/deposit")
     public ResponseEntity<Map<String, String>> deposit(HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(agentService.deposit(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.deposit(data, currentUser, ip, device));
     }
 
     @PostMapping("/deposit-with-2-fa")
     public ResponseEntity<Map<String, String>> depositWith2fa (HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith2fa data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(agentService.depositWith2fa(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.depositWith2fa(data, currentUser, ip, device));
     }
 
     @PostMapping("withdraw")
     public ResponseEntity<Map<String ,String>> withdraw (HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return  ResponseEntity.ok().body(agentService.withdraw(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return  ResponseEntity.ok().body(agentService.withdraw(data, currentUser, ip, device));
     }
 
     @PostMapping("withdraw-with-2fa")
     public ResponseEntity<Map<String, String>> withdrawWith2fa (HttpServletRequest request, @Valid @RequestBody AgentDTO.DepositWith2fa data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(agentService.withdrawWith2fa(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.withdrawWith2fa(data, currentUser, ip, device));
     }
 
     @PatchMapping("/flag")
     public ResponseEntity<Map<String, String>> flagUser (HttpServletRequest request, @Valid @RequestBody AgentDTO.Flag data){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
-        return ResponseEntity.ok().body(agentService.flagUser(data, currentUser, ip));
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.flagUser(data, currentUser, ip, device));
     }
 
 }

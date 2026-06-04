@@ -7,10 +7,7 @@ import com.abdoul.gentech_fintech.Exceptions.ForbiddenException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
 import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
-import com.abdoul.gentech_fintech.Util.IpUtil;
-import com.abdoul.gentech_fintech.Util.JwtUtil;
-import com.abdoul.gentech_fintech.Util.Resend;
-import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
+import com.abdoul.gentech_fintech.Util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +30,9 @@ public class AgentService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final IpUtil ipUtil;
+    private final UserAgentUtil userAgentUtil;
 
-    public AgentService (UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
+    public AgentService (UserAgentUtil userAgentUtil,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
         this.userRepository = userRepository;
         this.resend = resend;
         this.twoFactorUtil = twoFactorUtil;
@@ -44,10 +42,11 @@ public class AgentService {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.ipUtil = ipUtil;
+        this.userAgentUtil = userAgentUtil;
     }
 
     @Transactional
-    public Map<String, String> getUserCredentials (AgentDTO.UserCredentials data, UserModel currentUser, String ip){
+    public Map<String, String> getUserCredentials (AgentDTO.UserCredentials data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -63,6 +62,7 @@ public class AgentService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         if (user.getId().equals(currentUser.getId())){
             currentUser.setFlagged(true);
@@ -74,6 +74,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new BadRequestException("Your account has been flagged");
         }
@@ -103,6 +106,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             Map<String, String> response = new LinkedHashMap<>();
 
@@ -122,6 +128,9 @@ public class AgentService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
         Map<String, String> response = new LinkedHashMap<>();
 
@@ -133,7 +142,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> deposit (AgentDTO.DepositWith data, UserModel currentUser, String ip){
+    public Map<String, String> deposit (AgentDTO.DepositWith data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -145,6 +154,7 @@ public class AgentService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
@@ -156,6 +166,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -179,6 +192,10 @@ public class AgentService {
         agentLog.setCountry(infos.get("Country"));
         agentLog.setLongitude(infos.get("Longitude"));
         agentLog.setLatitude(infos.get("Latitude"));
+        agentLog.setOs(userAgents.get("OS"));
+        agentLog.setDevice(userAgents.get("Device"));
+        agentLog.setBrowser(userAgents.get("Browser"));
+
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
@@ -187,6 +204,9 @@ public class AgentService {
         userLog.setCountry(infos.get("Country"));
         userLog.setLongitude(infos.get("Longitude"));
         userLog.setLatitude(infos.get("Latitude"));
+        userLog.setOs(userAgents.get("OS"));
+        userLog.setDevice(userAgents.get("Device"));
+        userLog.setBrowser(userAgents.get("Browser"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
@@ -200,7 +220,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> depositWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser, String ip){
+    public Map<String, String> depositWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -235,6 +255,7 @@ public class AgentService {
         twoFactorRepository.save(userWallet.getUser().getTwoFactor());
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
@@ -246,6 +267,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -269,6 +293,9 @@ public class AgentService {
         agentLog.setCountry(infos.get("Country"));
         agentLog.setLongitude(infos.get("Longitude"));
         agentLog.setLatitude(infos.get("Latitude"));
+        agentLog.setOs(userAgents.get("OS"));
+        agentLog.setDevice(userAgents.get("Device"));
+        agentLog.setBrowser(userAgents.get("Browser"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
@@ -277,6 +304,9 @@ public class AgentService {
         userLog.setCountry(infos.get("Country"));
         userLog.setLongitude(infos.get("Longitude"));
         userLog.setLatitude(infos.get("Latitude"));
+        userLog.setOs(userAgents.get("OS"));
+        userLog.setDevice(userAgents.get("Device"));
+        userLog.setBrowser(userAgents.get("Browser"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
@@ -290,7 +320,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> withdraw (AgentDTO.DepositWith data, UserModel currentUser, String ip){
+    public Map<String, String> withdraw (AgentDTO.DepositWith data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -302,6 +332,7 @@ public class AgentService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
 
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
@@ -314,6 +345,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -341,6 +375,9 @@ public class AgentService {
         agentLog.setCountry(infos.get("Country"));
         agentLog.setLongitude(infos.get("Longitude"));
         agentLog.setLatitude(infos.get("Latitude"));
+        agentLog.setOs(userAgents.get("OS"));
+        agentLog.setDevice(userAgents.get("Device"));
+        agentLog.setBrowser(userAgents.get("Browser"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
@@ -349,6 +386,9 @@ public class AgentService {
         userLog.setCountry(infos.get("Country"));
         userLog.setLongitude(infos.get("Longitude"));
         userLog.setLatitude(infos.get("Latitude"));
+        userLog.setOs(userAgents.get("OS"));
+        userLog.setDevice(userAgents.get("Device"));
+        userLog.setBrowser(userAgents.get("Browser"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
@@ -362,7 +402,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> withdrawWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser, String ip){
+    public Map<String, String> withdrawWith2fa (AgentDTO.DepositWith2fa data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -401,6 +441,7 @@ public class AgentService {
         twoFactorRepository.save(userWallet.getUser().getTwoFactor());
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         if (userWallet.getId().equals(currentUser.getWallet().getId())){
             currentUser.setFlagged(true);
@@ -412,6 +453,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged");
         }
@@ -435,6 +479,9 @@ public class AgentService {
         agentLog.setCountry(infos.get("Country"));
         agentLog.setLongitude(infos.get("Longitude"));
         agentLog.setLatitude(infos.get("Latitude"));
+        agentLog.setOs(userAgents.get("OS"));
+        agentLog.setDevice(userAgents.get("Device"));
+        agentLog.setBrowser(userAgents.get("Browser"));
 
         AuditLogs userLog = new AuditLogs();
         userLog.setUser(userWallet.getUser());
@@ -443,6 +490,9 @@ public class AgentService {
         userLog.setCountry(infos.get("Country"));
         userLog.setLongitude(infos.get("Longitude"));
         userLog.setLatitude(infos.get("Latitude"));
+        userLog.setOs(userAgents.get("OS"));
+        userLog.setDevice(userAgents.get("Device"));
+        userLog.setBrowser(userAgents.get("Browser"));
 
         List<AuditLogs> logs = List.of(userLog, agentLog);
 
@@ -456,7 +506,7 @@ public class AgentService {
     }
 
     @Transactional
-    public Map<String, String> flagUser (AgentDTO.Flag data, UserModel currentUser, String ip){
+    public Map<String, String> flagUser (AgentDTO.Flag data, UserModel currentUser, String ip, String device){
         if (!allowed_roles.contains(currentUser.getRole())){
             throw new ForbiddenException("Unauthorized");
         }
@@ -481,6 +531,7 @@ public class AgentService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         if (user.getId().equals(currentUser.getId())){
             AuditLogs newLog = new AuditLogs();
@@ -490,6 +541,9 @@ public class AgentService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new ForbiddenException("Unauthorized");
         }
@@ -504,6 +558,9 @@ public class AgentService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         Map<String,String> response = new LinkedHashMap<>();

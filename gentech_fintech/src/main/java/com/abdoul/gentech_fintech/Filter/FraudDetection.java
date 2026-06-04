@@ -1,14 +1,14 @@
-package com.abdoul.gentech_fintech.Util;
+package com.abdoul.gentech_fintech.Filter;
 
 import com.abdoul.gentech_fintech.Models.AuditLogs;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
+import com.abdoul.gentech_fintech.Util.IpUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 

@@ -11,6 +11,7 @@ import com.abdoul.gentech_fintech.Repositories.LogRepository;
 import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Util.IpUtil;
 import com.abdoul.gentech_fintech.Util.Resend;
+import com.abdoul.gentech_fintech.Util.UserAgentUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,17 +27,19 @@ public class AdminService {
     private final LogRepository logRepository;
     private final Resend resend;
     private final IpUtil ipUtil;
+    private final UserAgentUtil userAgentUtil;
 
-    public AdminService(UserRepository userRepository, LogRepository logRepository, Resend resend, IpUtil ipUtil){
+    public AdminService(UserRepository userRepository, LogRepository logRepository, Resend resend, IpUtil ipUtil, UserAgentUtil userAgentUtil){
         this.userRepository = userRepository;
         this.logRepository = logRepository;
         this.resend = resend;
         this.ipUtil = ipUtil;
+        this.userAgentUtil = userAgentUtil;
     }
     @Transactional
-    public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser, String ip){
+    public Map<String, String> unflagUser (AdminDTO.Unflag data, UserModel currentUser, String ip, String device){
 
-        requireAdmin(currentUser, ip);
+        requireAdmin(currentUser, ip, device);
         UserModel user = findUser(data);
 
         if (!user.isFlagged()){
@@ -44,6 +47,7 @@ public class AdminService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         user.setFlagged(false);
         userRepository.save(user);
@@ -54,6 +58,9 @@ public class AdminService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         resend.UnflagEmail(user.getName(), "The flag on your account has been lifted");
@@ -65,8 +72,8 @@ public class AdminService {
     }
 
     @Transactional
-    public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser, String ip){
-        requireAdmin(currentUser, ip);
+    public Map<String, String> promoteAgent (AdminDTO.Unflag data, UserModel currentUser, String ip, String device){
+        requireAdmin(currentUser, ip, device);
         UserModel user = findUser(data);
 
         if (user.isFlagged()){
@@ -80,6 +87,7 @@ public class AdminService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         user.setRole("agents");
         userRepository.save(user);
@@ -91,6 +99,9 @@ public class AdminService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         Map<String, String> response = new LinkedHashMap<>();
@@ -100,8 +111,8 @@ public class AdminService {
     }
 
     @Transactional
-    public Map<String, String> deleteUser (AdminDTO.Unflag data, UserModel currentUser, String ip){
-        requireAdmin(currentUser, ip);
+    public Map<String, String> deleteUser (AdminDTO.Unflag data, UserModel currentUser, String ip, String device){
+        requireAdmin(currentUser, ip, device);
         UserModel user = findUser(data);
         user.setDeleted(true);
         userRepository.save(user);
@@ -110,6 +121,7 @@ public class AdminService {
         response.put("notice", "Account successfully deleted");
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " has deleted user " + user.getId());
@@ -118,6 +130,9 @@ public class AdminService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         return response;
@@ -142,9 +157,10 @@ public class AdminService {
     }
 
     @Transactional
-    private void requireAdmin(UserModel currentUser, String ip) {
+    private void requireAdmin(UserModel currentUser, String ip, String device) {
         if (!currentUser.getRole().equals("admin")) {
             Map<String, String> infos = ipUtil.getIpDetails(ip);
+            Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
             currentUser.setFlagged(true);
             userRepository.save(currentUser);
             AuditLogs newLog = new AuditLogs();
@@ -154,14 +170,17 @@ public class AdminService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new ForbiddenException("Your account has been flagged.");
         }
     }
 
     @Transactional
-    public Map<String, String> demoteAgent (AdminDTO.Unflag data, UserModel currentUser, String ip){
-        requireAdmin(currentUser, ip);
+    public Map<String, String> demoteAgent (AdminDTO.Unflag data, UserModel currentUser, String ip, String device){
+        requireAdmin(currentUser, ip, device);
         UserModel user = findUser(data);
 
         if (!user.getRole().equals("agents")){
@@ -175,6 +194,7 @@ public class AdminService {
         response.put("notice", "Account successfully demoted to user");
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " has demoted agent with id " + user.getId() + " to user");
@@ -183,13 +203,16 @@ public class AdminService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         return response;
     }
 
-    public AdminDTO.UserCredentials getUserDetails (UserModel currentUser, AdminDTO.Unflag data, String ip){
-        requireAdmin(currentUser, ip);
+    public AdminDTO.UserCredentials getUserDetails (UserModel currentUser, AdminDTO.Unflag data, String ip, String device){
+        requireAdmin(currentUser, ip, device);
         UserModel user = findUser(data);
 
 
@@ -210,6 +233,7 @@ public class AdminService {
         details.setUserLogs(user.getLogs());
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         AuditLogs newLog = new AuditLogs();
         newLog.setAction("Admin " + currentUser.getId() + " viewed credentials of user " + user.getId());
@@ -218,13 +242,16 @@ public class AdminService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         return details;
     }
 
-    public Page<AdminDTO.AllUserDetails> getAllUsers (int page, int size, UserModel currentUser, String ip){
-        requireAdmin(currentUser, ip);
+    public Page<AdminDTO.AllUserDetails> getAllUsers (int page, int size, UserModel currentUser, String ip, String device){
+        requireAdmin(currentUser, ip, device);
 
         if (page < 1){
             throw new BadRequestException("Page must be greater than 0");

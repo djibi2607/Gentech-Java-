@@ -3,16 +3,10 @@ package com.abdoul.gentech_fintech.Services;
 import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import com.abdoul.gentech_fintech.Configuration.KycType;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
-import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
-import com.abdoul.gentech_fintech.Exceptions.ConflictException;
-import com.abdoul.gentech_fintech.Exceptions.JwtException;
-import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
+import com.abdoul.gentech_fintech.Exceptions.*;
 import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
-import com.abdoul.gentech_fintech.Util.IpUtil;
-import com.abdoul.gentech_fintech.Util.JwtUtil;
-import com.abdoul.gentech_fintech.Util.Resend;
-import com.abdoul.gentech_fintech.Util.TwoFactorUtil;
+import com.abdoul.gentech_fintech.Util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,8 +31,9 @@ public class UserService {
     private final TwoFactorUtil twoFactor;
     private final TwoFactorRepository twoFactorRepository;
     private final IpUtil ipUtil;
+    private final UserAgentUtil userAgentUtil;
 
-    public UserService (IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
+    public UserService (UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
@@ -50,10 +45,11 @@ public class UserService {
         this.twoFactor = twoFactor;
         this.twoFactorRepository = twoFactorRepository;
         this.ipUtil = ipUtil;
+        this.userAgentUtil = userAgentUtil;
     }
 
     @Transactional
-    public Map<String, String> createAccount(UserDTO.SignUp data, String ip){
+    public Map<String, String> createAccount(UserDTO.SignUp data, String ip, String device){
         try {
             if (data.getEmail() == null && data.getPhone() == null) {
                 throw new BadRequestException("You must enter an email or phone number");
@@ -66,6 +62,7 @@ public class UserService {
             }
 
             Map<String, String> infos = ipUtil.getIpDetails(ip);
+            Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
             UserModel newUser = new UserModel();
             newUser.setName(data.getName());
@@ -108,6 +105,9 @@ public class UserService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
 
             logRepository.save(newLog);
 
@@ -121,7 +121,7 @@ public class UserService {
     }
 
     @Transactional
-    public Map<String, String> logIn (UserDTO.Login data, String ip){
+    public Map<String, String> logIn (UserDTO.Login data, String ip, String device){
         if (data.getEmail() == null && data.getPhone() == null){
             throw new BadRequestException("You must enter an email or phone number");
         }
@@ -137,6 +137,7 @@ public class UserService {
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         Map<String, String> response = new LinkedHashMap<>();
 
@@ -185,6 +186,9 @@ public class UserService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
 
             logRepository.save(newLog);
 
@@ -209,6 +213,9 @@ public class UserService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
 
         logRepository.save(newLog);
 
@@ -221,12 +228,13 @@ public class UserService {
     }
 
     @Transactional
-    public Map<String, String> loginWith2fa (UserDTO.LoginWith2fa data, String ip){
+    public Map<String, String> loginWith2fa (UserDTO.LoginWith2fa data, String ip, String device){
         if (!jwtUtil.isTokenValid(data.getToken())){
             throw new JwtException("Invalid credentials");
         }
 
         Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
 
         Long id = Long.parseLong(jwtUtil.extractIdFromToken(data.getToken()));
 
@@ -245,6 +253,9 @@ public class UserService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new BadRequestException("Expired code");
         }
@@ -257,6 +268,9 @@ public class UserService {
             newLog.setCountry(infos.get("Country"));
             newLog.setLongitude(infos.get("Longitude"));
             newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
             logRepository.save(newLog);
             throw new BadRequestException("Invalid code");
         }
@@ -270,6 +284,9 @@ public class UserService {
         newLog.setCountry(infos.get("Country"));
         newLog.setLongitude(infos.get("Longitude"));
         newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog);
 
         String accessToken = jwtUtil.createAccessToken(id);
