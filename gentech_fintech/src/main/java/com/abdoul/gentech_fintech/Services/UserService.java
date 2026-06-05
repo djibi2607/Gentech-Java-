@@ -9,6 +9,8 @@ import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +37,9 @@ public class UserService {
     private final IpUtil ipUtil;
     private final UserAgentUtil userAgentUtil;
     private final TransactionRepository transactionRepository;
+    private final CacheManager cacheManager;
 
-    public UserService (TransactionRepository transactionRepository,UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
+    public UserService (TransactionRepository transactionRepository,UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor,CacheManager cacheManager, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
@@ -50,6 +53,7 @@ public class UserService {
         this.ipUtil = ipUtil;
         this.userAgentUtil = userAgentUtil;
         this.transactionRepository = transactionRepository;
+        this.cacheManager = cacheManager;
     }
 
     @Transactional
@@ -387,6 +391,8 @@ public class UserService {
         newLog1.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog1);
 
+        cacheManager.getCache("userBalance").evict(currentUser.getId());
+        cacheManager.getCache("userBalance").evict(receiver.getId());
 
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Your transfer to " + receiver.getName() + " has been successfully");
@@ -445,4 +451,12 @@ public class UserService {
         return response;
     }
 
+    @Cacheable(cacheNames = "userBalance", key = "#currentUser.id")
+    public Map<String , BigDecimal> getBalance (UserModel currentUser){
+        Map<String, BigDecimal> response = new LinkedHashMap<>();
+
+        response.put("balance", currentUser.getWallet().getBalance());
+
+        return response;
+    }
 }

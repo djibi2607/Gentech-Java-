@@ -8,6 +8,7 @@ import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
 import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.*;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,8 +32,9 @@ public class AgentService {
     private final TransactionRepository transactionRepository;
     private final IpUtil ipUtil;
     private final UserAgentUtil userAgentUtil;
+    private final CacheManager cacheManager;
 
-    public AgentService (UserAgentUtil userAgentUtil,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
+    public AgentService (UserAgentUtil userAgentUtil,CacheManager cacheManager,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
         this.userRepository = userRepository;
         this.resend = resend;
         this.twoFactorUtil = twoFactorUtil;
@@ -43,6 +45,7 @@ public class AgentService {
         this.transactionRepository = transactionRepository;
         this.ipUtil = ipUtil;
         this.userAgentUtil = userAgentUtil;
+        this.cacheManager = cacheManager;
     }
 
     @Transactional(noRollbackFor = BadRequestException.class)
@@ -213,6 +216,9 @@ public class AgentService {
         logRepository.saveAll(logs);
 
         resend.sendTransactionEmail(userWallet.getUser().getName(), "Deposit has been made to your account", data.getAmount(), TransType.DEPOSIT);
+
+        cacheManager.getCache("userBalance").evictIfPresent(userWallet.getUser().getId());
+
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Deposit successful");
 
@@ -316,6 +322,8 @@ public class AgentService {
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Deposit successful");
 
+        cacheManager.getCache("userBalance").evictIfPresent(user.getId());
+
         return response;
     }
 
@@ -397,6 +405,8 @@ public class AgentService {
         resend.sendTransactionEmail(userWallet.getUser().getName(), "Withdrawal has been made from your account", data.getAmount(), TransType.WITHDRAWAL);
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Withdrawal successful");
+
+        cacheManager.getCache("userBalance").evictIfPresent(userWallet.getUser().getId());
 
         return response;
     }
@@ -502,6 +512,7 @@ public class AgentService {
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Withdrawal successful");
 
+        cacheManager.getCache("userBalance").evictIfPresent(user.getId());
         return response;
     }
 

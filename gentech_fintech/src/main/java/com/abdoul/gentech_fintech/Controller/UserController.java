@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -54,5 +55,11 @@ public class UserController {
         String ip = request.getRemoteAddr();
         String device = request.getHeader("User-Agent");
         return ResponseEntity.ok().body(userService.refreshToken(data, currentUser, ip, device));
+    }
+
+    @GetMapping("/balance")
+    public ResponseEntity<Map<String, BigDecimal>> getBalance (HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(userService.getBalance(currentUser));
     }
 }
