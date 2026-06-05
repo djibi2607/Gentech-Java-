@@ -47,4 +47,12 @@ public class UserController {
         String device = request.getHeader("User-Agent");
         return ResponseEntity.ok().body(userService.transfer(data, currentUser, ip, device));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, String>> refresh (@Valid @RequestBody UserDTO.Refresh data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        String ip = request.getRemoteAddr();
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(userService.refreshToken(data, currentUser, ip, device));
+    }
 }
