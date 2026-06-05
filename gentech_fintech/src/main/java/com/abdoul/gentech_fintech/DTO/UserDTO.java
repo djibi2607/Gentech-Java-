@@ -58,4 +58,11 @@ public class UserDTO {
         @NotBlank(message = "Enter a description")
         private String description;
     }
+
+    @Getter
+    @Setter
+    public static class Refresh{
+        @NotBlank(message = "Enter the token")
+        private String token;
+    }
 }

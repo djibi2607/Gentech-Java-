@@ -394,4 +394,55 @@ public class UserService {
         return response;
     }
 
+    @Transactional(noRollbackFor = BadRequestException.class)
+    public Map<String, String> refreshToken (UserDTO.Refresh data, UserModel currentUser, String ip, String device){
+        RefreshModel refresh = refreshRepository.findTopByUserOrderByCreatedAtDesc(currentUser);
+
+        if (refresh == null){
+            throw new UnauthorizedException("Invalid token");
+        }
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
+
+        if (!refresh.getToken().equals(data.getToken())){
+            throw new UnauthorizedException("Invalid token");
+        }
+
+        if (refresh.isRevoked() || refresh.getExpiresAt().isBefore(ZonedDateTime.now(ZoneId.of("UTC")))){
+            currentUser.setFlagged(true);
+            userRepository.save(currentUser);
+            AuditLogs newLog1 = new AuditLogs();
+            newLog1.setUser(currentUser);
+            newLog1.setAction("User has been flagged for using invalid or expired tokens");
+            newLog1.setCity(infos.get("City"));
+            newLog1.setCountry(infos.get("Country"));
+            newLog1.setLongitude(infos.get("Longitude"));
+            newLog1.setLatitude(infos.get("Latitude"));
+            newLog1.setOs(userAgents.get("OS"));
+            newLog1.setDevice(userAgents.get("Device"));
+            newLog1.setBrowser(userAgents.get("Browser"));
+            logRepository.save(newLog1);
+            throw new BadRequestException("Invalid credentials. Your account has been flagged");
+        }
+
+        refresh.setRevoked(true);
+        refreshRepository.save(refresh);
+
+        String accessToken = jwtUtil.createAccessToken(currentUser.getId());
+        String refreshToken = jwtUtil.createRefresh();
+
+        RefreshModel newRefresh = new RefreshModel();
+        newRefresh.setUser(currentUser);
+        newRefresh.setToken(refreshToken);
+        refreshRepository.save(newRefresh);
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("access token", accessToken);
+        response.put("refresh token", refreshToken);
+        response.put("token type", "Bearer ");
+
+        return response;
+    }
+
 }
