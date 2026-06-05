@@ -1,6 +1,7 @@
 package com.abdoul.gentech_fintech.Controller;
 
 import com.abdoul.gentech_fintech.DTO.UserDTO;
+import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -37,5 +38,13 @@ public class UserController {
         String ip = request.getRemoteAddr();
         String device = request.getHeader("User-Agent");
         return ResponseEntity.ok().body(userService.loginWith2fa(data, ip, device));
+    }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<Map<String,String>> transfer (@Valid @RequestBody UserDTO.Transfer data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        String ip = request.getRemoteAddr();
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(userService.transfer(data, currentUser, ip, device));
     }
 }
