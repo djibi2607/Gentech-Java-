@@ -1,6 +1,7 @@
 package com.abdoul.gentech_fintech.Models;
 
 import com.abdoul.gentech_fintech.Configuration.TransType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,10 +38,12 @@ public class TransactionModel {
         this.createdAt = ZonedDateTime.now(ZoneId.of("UTC"));
     }
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "sender_wallet")
     private WalletModel senderWallet;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "receiver_wallet")
     private WalletModel receiverWallet;

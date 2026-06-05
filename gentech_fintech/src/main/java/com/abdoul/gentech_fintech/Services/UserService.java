@@ -2,6 +2,7 @@ package com.abdoul.gentech_fintech.Services;
 
 import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import com.abdoul.gentech_fintech.Configuration.KycType;
+import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Exceptions.*;
 import com.abdoul.gentech_fintech.Models.*;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
@@ -32,8 +34,9 @@ public class UserService {
     private final TwoFactorRepository twoFactorRepository;
     private final IpUtil ipUtil;
     private final UserAgentUtil userAgentUtil;
+    private final TransactionRepository transactionRepository;
 
-    public UserService (UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
+    public UserService (TransactionRepository transactionRepository,UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
@@ -46,6 +49,7 @@ public class UserService {
         this.twoFactorRepository = twoFactorRepository;
         this.ipUtil = ipUtil;
         this.userAgentUtil = userAgentUtil;
+        this.transactionRepository = transactionRepository;
     }
 
     @Transactional
@@ -227,7 +231,7 @@ public class UserService {
         return response;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public Map<String, String> loginWith2fa (UserDTO.LoginWith2fa data, String ip, String device){
         if (!jwtUtil.isTokenValid(data.getToken())){
             throw new JwtException("Invalid credentials");
@@ -304,6 +308,88 @@ public class UserService {
         response.put("access token", accessToken);
         response.put("refresh token", refreshToken);
         response.put("token type", "Bearer ");
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, String> transfer (UserDTO.Transfer data, UserModel currentUser, String ip, String device){
+        if (currentUser.isFlagged()){
+            throw new ForbiddenException("Unable to transfer due to account flag");
+        }
+
+        UserModel receiver = userRepository.findByEmailOrPhone(data.getReceiverEmail(), data.getReceiverPhone());
+
+        if (receiver == null || receiver.isDeleted()){
+            throw new NotFoundException("Receiver account not found");
+        }
+
+        WalletModel senderWallet = walletRepository.findByIdWithLock(currentUser.getWallet().getId());
+        WalletModel receiverWallet = walletRepository.findByIdWithLock(receiver.getWallet().getId());
+
+        if (senderWallet.getBalance().compareTo(data.getAmount()) < 0){
+            throw new BadRequestException("Insufficient funds");
+        }
+
+        if (currentUser.getId().equals(receiver.getId())){
+            throw new BadRequestException("Unable to transfer money to your account");
+        }
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
+
+        BigDecimal senderBalance = senderWallet.getBalance().subtract(data.getAmount());
+        BigDecimal receiverBalance = receiverWallet.getBalance().add(data.getAmount());
+
+        senderWallet.setBalance(senderBalance);
+        receiverWallet.setBalance(receiverBalance);
+        walletRepository.save(senderWallet);
+        walletRepository.save(receiverWallet);
+
+        TransactionModel senderTrans = new TransactionModel();
+        senderTrans.setSenderWallet(currentUser.getWallet());
+        senderTrans.setTransType(TransType.TRANSFER_OUT);
+        senderTrans.setDescription(data.getDescription());
+        senderTrans.setReceiverWallet(receiver.getWallet());
+        senderTrans.setAmount(data.getAmount());
+
+        TransactionModel receiverTrans = new TransactionModel();
+        receiverTrans.setSenderWallet(currentUser.getWallet());
+        receiverTrans.setTransType(TransType.TRANSFER_IN);
+        receiverTrans.setDescription(data.getDescription());
+        receiverTrans.setReceiverWallet(receiver.getWallet());
+        receiverTrans.setAmount(data.getAmount());
+
+        transactionRepository.save(senderTrans);
+        transactionRepository.save(receiverTrans);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setUser(currentUser);
+        newLog.setAction("User transferred $" + data.getAmount() + " to user with id " + receiver.getId());
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
+        logRepository.save(newLog);
+
+        AuditLogs newLog1 = new AuditLogs();
+        newLog1.setUser(receiver);
+        newLog1.setAction("User receiver $" + data.getAmount() + " from user with id " + currentUser.getId());
+        newLog1.setCity(infos.get("City"));
+        newLog1.setCountry(infos.get("Country"));
+        newLog1.setLongitude(infos.get("Longitude"));
+        newLog1.setLatitude(infos.get("Latitude"));
+        newLog1.setOs(userAgents.get("OS"));
+        newLog1.setDevice(userAgents.get("Device"));
+        newLog1.setBrowser(userAgents.get("Browser"));
+        logRepository.save(newLog1);
+
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("notice", "Your transfer to " + receiver.getName() + " has been successfully");
 
         return response;
     }

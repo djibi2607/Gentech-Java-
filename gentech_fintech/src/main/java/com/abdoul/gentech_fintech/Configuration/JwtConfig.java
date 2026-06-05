@@ -18,7 +18,7 @@ public class JwtConfig {
         FilterRegistrationBean <JwtFilter> reg = new FilterRegistrationBean<>();
 
         reg.setFilter(jwtFilter);
-        reg.addUrlPatterns("/api/users/getBalance");
+        reg.addUrlPatterns("/api/users/transfer");
         reg.addUrlPatterns("/api/agents/*");
         reg.addUrlPatterns("/api/admin/*");
         reg.setOrder(1);

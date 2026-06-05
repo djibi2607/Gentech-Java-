@@ -1,11 +1,11 @@
 package com.abdoul.gentech_fintech.DTO;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
+
+import java.math.BigDecimal;
 
 public class UserDTO {
     @Getter
@@ -43,5 +43,19 @@ public class UserDTO {
         private String token;
         @NotBlank(message = "Code field can't be empty")
         private String code;
+    }
+
+    @Getter
+    @Setter
+    public static class Transfer{
+        @DecimalMin(value = "0.1", message = "Amount must be greater than 0.1")
+        @DecimalMax(value = "10000", message = "Amount must be less or equal to 10000")
+        @Digits(integer = 5, fraction = 2)
+        private BigDecimal amount;
+        @Email
+        private String receiverEmail;
+        private String receiverPhone;
+        @NotBlank(message = "Enter a description")
+        private String description;
     }
 }
