@@ -22,6 +22,7 @@ public class JwtConfig {
         reg.addUrlPatterns("/api/users/balance");
         reg.addUrlPatterns("/api/users/refresh");
         reg.addUrlPatterns("/api/users/get-all-transactions");
+        reg.addUrlPatterns("/api/users/search-transactions");
         reg.addUrlPatterns("/api/agents/*");
         reg.addUrlPatterns("/api/admin/*");
         reg.setOrder(1);

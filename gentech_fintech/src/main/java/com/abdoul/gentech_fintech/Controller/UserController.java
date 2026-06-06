@@ -1,12 +1,15 @@
 package com.abdoul.gentech_fintech.Controller;
 
+import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
+import com.abdoul.gentech_fintech.Models.TransactionModel;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,5 +73,12 @@ public class UserController {
     public ResponseEntity<List<UserDTO.Transactions>> getAllTransactions (HttpServletRequest request, @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10") int size){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(userService.getAllTransactions(currentUser, page, size));
+    }
+
+    @GetMapping("search-transactions")
+    public ResponseEntity<Page<TransactionModel>> searchForTransactions (HttpServletRequest request, @RequestParam(value = "description", required = false) String description, @RequestParam(value = "type", required = false)TransType type,
+                                                                         @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10") int size){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(userService.searchForTransactions(currentUser, page, size, description, type));
     }
 }

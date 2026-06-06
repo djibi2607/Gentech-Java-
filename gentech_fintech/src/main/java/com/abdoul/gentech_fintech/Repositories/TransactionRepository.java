@@ -20,4 +20,10 @@ public interface TransactionRepository extends JpaRepository<TransactionModel, L
     BigDecimal sumTodayAmount (@Param("start") ZonedDateTime today);
 
     Page<TransactionModel> findBySenderWalletOrReceiverWallet (WalletModel sender, WalletModel receiver, Pageable pageable);
+
+    @Query(value = "SELECT * FROM transactions t WHERE " +
+            "(to_tsvector ('english', t.description) @@plainto_tsquery ('english', :keyword) OR :keyword IS NULL) " +
+            "AND (t.trans_type = :type OR CAST(:type AS VARCHAR) IS NULL) " +
+            "AND (t.sender_wallet = :senderWalletId OR t.receiver_wallet = :receiverWalletId)", nativeQuery = true)
+    Page<TransactionModel> findTransactionByDescriptionAndType (@Param("keyword") String description, @Param("type") TransType type, @Param("senderWalletId") Long senderWalletId, @Param("receiverWalletId") Long receiverWalletId, Pageable pageable);
 }

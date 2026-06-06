@@ -500,4 +500,16 @@ public class UserService {
             return dto;
         }).collect(Collectors.toList());
     }
+
+    public Page<TransactionModel> searchForTransactions (UserModel currentUser, int page, int size, String description, TransType transType){
+        if (page < 1){
+            throw new BadRequestException("Page number can't be less than 1");
+        }
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "created_at"));
+
+        Page<TransactionModel> transactionsFound = transactionRepository.findTransactionByDescriptionAndType(description, transType, currentUser.getWallet().getId(), currentUser.getWallet().getId(), pageable);
+
+        return transactionsFound;
+    }
 }
