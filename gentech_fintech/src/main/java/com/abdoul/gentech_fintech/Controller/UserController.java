@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -61,5 +62,11 @@ public class UserController {
     public ResponseEntity<Map<String, BigDecimal>> getBalance (HttpServletRequest request){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(userService.getBalance(currentUser));
+    }
+
+    @PostMapping("get-all-transactions")
+    public ResponseEntity<List<UserDTO.Transactions>> getAllTransactions (HttpServletRequest request, @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10") int size){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(userService.getAllTransactions(currentUser, page, size));
     }
 }
