@@ -4,6 +4,8 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
+import com.abdoul.gentech_fintech.Configuration.TransType;
+import java.time.ZonedDateTime;
 
 import java.math.BigDecimal;
 
@@ -64,5 +66,15 @@ public class UserDTO {
     public static class Refresh{
         @NotBlank(message = "Enter the token")
         private String token;
+    }
+
+    @Getter
+    @Setter
+    public static class Transactions{
+            private Long id;
+            private BigDecimal amount;
+            private TransType transType;
+            private String description;
+            private ZonedDateTime createdAt;
     }
 }

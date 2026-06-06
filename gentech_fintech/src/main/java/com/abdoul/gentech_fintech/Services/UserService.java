@@ -11,6 +11,10 @@ import com.abdoul.gentech_fintech.Util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +25,8 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 public class UserService {
@@ -391,8 +397,8 @@ public class UserService {
         newLog1.setBrowser(userAgents.get("Browser"));
         logRepository.save(newLog1);
 
-        cacheManager.getCache("userBalance").evict(currentUser.getId());
-        cacheManager.getCache("userBalance").evict(receiver.getId());
+        cacheManager.getCache("userBalance").evictIfPresent(currentUser.getId());
+        cacheManager.getCache("userBalance").evictIfPresent(receiver.getId());
 
         Map<String, String> response = new LinkedHashMap<>();
         response.put("notice", "Your transfer to " + receiver.getName() + " has been successfully");
@@ -458,5 +464,26 @@ public class UserService {
         response.put("balance", currentUser.getWallet().getBalance());
 
         return response;
+    }
+
+    @Cacheable(cacheNames = "userTransactions", key = "#currentUser.id + '_' + #page + '_' + #size")
+    public List<UserDTO.Transactions> getAllTransactions (UserModel currentUser, int page, int size){
+        if (page < 1){
+            throw new BadRequestException("Page number can't be less than 1");
+        }
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<TransactionModel> transactions = transactionRepository.findBySenderWalletOrReceiverWallet(currentUser.getWallet(), currentUser.getWallet(), pageable);
+
+        return transactions.getContent().stream().map(transaction -> {
+            UserDTO.Transactions dto = new UserDTO.Transactions();
+            dto.setId(transaction.getId());
+            dto.setCreatedAt(transaction.getCreatedAt());
+            dto.setAmount(transaction.getAmount());
+            dto.setDescription(transaction.getDescription());
+            dto.setTransType(transaction.getTransType());
+            return dto;
+        }).collect(Collectors.toList());
     }
 }
