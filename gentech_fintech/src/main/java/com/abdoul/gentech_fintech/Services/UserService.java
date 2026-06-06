@@ -483,6 +483,20 @@ public class UserService {
             dto.setAmount(transaction.getAmount());
             dto.setDescription(transaction.getDescription());
             dto.setTransType(transaction.getTransType());
+
+            if (transaction.getTransType().equals(TransType.TRANSFER_IN)){
+                dto.setFrom(transaction.getSenderWallet().getUser().getName());
+                dto.setTo("Your account");
+            }
+            else if (transaction.getTransType().equals(TransType.TRANSFER_OUT)){
+                dto.setFrom("Your account");
+                dto.setTo(transaction.getReceiverWallet().getUser().getName());
+            }
+            else {
+                dto.setFrom("Agent");
+                dto.setTo("Your account");
+            }
+
             return dto;
         }).collect(Collectors.toList());
     }

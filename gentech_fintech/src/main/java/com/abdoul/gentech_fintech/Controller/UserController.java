@@ -5,6 +5,8 @@ import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

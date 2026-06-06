@@ -76,5 +76,7 @@ public class UserDTO {
             private TransType transType;
             private String description;
             private ZonedDateTime createdAt;
+            private String from;
+            private String to;
     }
 }

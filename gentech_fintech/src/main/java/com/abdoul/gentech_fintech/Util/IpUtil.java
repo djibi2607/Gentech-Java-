@@ -17,7 +17,6 @@ public class IpUtil {
     }
 
     public Map<String, String> getIpDetails (String ip){
-
         if (ip == null){
             throw new BadRequestException("Unable to locate you");
         }
