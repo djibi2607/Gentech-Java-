@@ -64,7 +64,7 @@ public class UserController {
         return ResponseEntity.ok().body(userService.getBalance(currentUser));
     }
 
-    @PostMapping("get-all-transactions")
+    @GetMapping("get-all-transactions")
     public ResponseEntity<List<UserDTO.Transactions>> getAllTransactions (HttpServletRequest request, @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10") int size){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(userService.getAllTransactions(currentUser, page, size));
