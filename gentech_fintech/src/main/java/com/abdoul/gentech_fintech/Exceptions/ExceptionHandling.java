@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -43,6 +44,17 @@ public class ExceptionHandling {
 
         Map<String, String> errors = new LinkedHashMap<>();
         errors.put("error", "Something went wrong. Please try again");
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errors);
+    }
+
+    @ExceptionHandler(IOException.class)
+    private ResponseEntity<Map<String, String>> handleIoException (IOException ex){
+        Map<String, String> errors = new LinkedHashMap<>();
+
+        errors.put("error", "File upload failed");
+
+        log.error("file error {}", ex.getCause(), ex);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errors);
     }
