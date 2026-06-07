@@ -1,5 +1,7 @@
 package com.abdoul.gentech_fintech.DTO;
 
+import com.abdoul.gentech_fintech.Configuration.KycStatus;
+import com.abdoul.gentech_fintech.Configuration.KycType;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -80,5 +82,15 @@ public class UserDTO {
             private ZonedDateTime createdAt;
             private String from;
             private String to;
+    }
+
+    @Getter
+    @Setter
+    public static class KycDetails{
+        private Long id;
+        private KycStatus status;
+        private KycType type;
+        private ZonedDateTime submittedAt;
+        private String name;
     }
 }

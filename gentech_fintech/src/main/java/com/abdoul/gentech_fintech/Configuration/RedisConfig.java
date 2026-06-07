@@ -24,10 +24,16 @@ public class RedisConfig {
                 .entryTtl(Duration.ofMinutes(2))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.json()));
 
+        RedisCacheConfiguration kycConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(2))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.json()));
+
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withCacheConfiguration("userTransactions", transConfig)
+                .withCacheConfiguration("kycs", kycConfig)
                 .build();
     }
 }

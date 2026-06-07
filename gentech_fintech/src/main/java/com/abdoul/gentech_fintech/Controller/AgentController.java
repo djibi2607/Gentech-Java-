@@ -1,6 +1,7 @@
 package com.abdoul.gentech_fintech.Controller;
 
 import com.abdoul.gentech_fintech.DTO.AgentDTO;
+import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.AgentService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -64,6 +66,12 @@ public class AgentController {
         String ip = request.getRemoteAddr();
         String device = request.getHeader("User-Agent");
         return ResponseEntity.ok().body(agentService.flagUser(data, currentUser, ip, device));
+    }
+
+    @GetMapping("/kyc")
+    public ResponseEntity<List<UserDTO.KycDetails>> getUnsolvedKyc (HttpServletRequest request, @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam("size") int size){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        return ResponseEntity.ok().body(agentService.getUnSolvedKyc(currentUser, page, size));
     }
 
 }
