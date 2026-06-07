@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 import com.abdoul.gentech_fintech.Configuration.TransType;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.ZonedDateTime;
 
 import java.math.BigDecimal;

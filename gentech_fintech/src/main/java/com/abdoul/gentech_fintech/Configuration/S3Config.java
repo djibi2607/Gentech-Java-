@@ -7,7 +7,6 @@ import software.amazon.awssdk.auth.credentials.*;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.*;
 
 @Configuration
 public class S3Config {
@@ -17,7 +16,7 @@ public class S3Config {
     @Value("${s3.secret.key}")
     private String secretKey;
 
-    @Value("$s3.access.key}")
+    @Value("${s3.access.key}")
     private String accessKey;
 
     @Bean

@@ -18,7 +18,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -44,8 +46,10 @@ public class UserService {
     private final UserAgentUtil userAgentUtil;
     private final TransactionRepository transactionRepository;
     private final CacheManager cacheManager;
+    private final S3Util s3;
+    private final UrlUtil url;
 
-    public UserService (TransactionRepository transactionRepository,UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor,CacheManager cacheManager, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
+    public UserService (S3Util s3,UrlUtil url,TransactionRepository transactionRepository,UserAgentUtil userAgentUtil,IpUtil ipUtil, UserRepository userRepository, TwoFactorRepository twoFactorRepository, TwoFactorUtil twoFactor,CacheManager cacheManager, BCryptPasswordEncoder encoder, WalletRepository walletRepository, Resend resend, LogRepository logRepository, JwtUtil jwtUtil, RefreshRepository refreshRepository, KycRepository kycRepository){
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.walletRepository = walletRepository;
@@ -60,6 +64,8 @@ public class UserService {
         this.userAgentUtil = userAgentUtil;
         this.transactionRepository = transactionRepository;
         this.cacheManager = cacheManager;
+        this.s3 = s3;
+        this.url = url;
     }
 
     @Transactional
@@ -93,11 +99,11 @@ public class UserService {
 
             KycModel idKyc = new KycModel();
             idKyc.setUser(newUser);
-            idKyc.setKycType(KycType.id);
+            idKyc.setKycType(KycType.ID);
 
             KycModel selfieKyc = new KycModel();
             selfieKyc.setUser(newUser);
-            selfieKyc.setKycType(KycType.selfie);
+            selfieKyc.setKycType(KycType.SELFIE);
 
             List<KycModel> kyc = List.of(selfieKyc, idKyc);
 
@@ -157,13 +163,13 @@ public class UserService {
 
         ZonedDateTime today = ZonedDateTime.now(ZoneId.of("UTC"));
 
-        KycModel idKyc = kycRepository.findByUserAndKycType(currentUser, KycType.id);
+        KycModel idKyc = kycRepository.findByUserAndKycType(currentUser, KycType.ID);
 
         if (currentUser.getCreatedAt().plusDays(14).isBefore(today) && idKyc.getStatus() == KycStatus.Pending){
             throw new BadRequestException("This account has been deactivated because of failure to kyc submission");
         }
 
-        KycModel selfieKyc = kycRepository.findByUserAndKycType(currentUser, KycType.selfie);
+        KycModel selfieKyc = kycRepository.findByUserAndKycType(currentUser, KycType.SELFIE);
 
         if (currentUser.getCreatedAt().plusDays(14).isBefore(today) && selfieKyc.getStatus() == KycStatus.Pending){
             throw new BadRequestException("This account has been deactivated because of failure to kyc submission");
@@ -512,4 +518,44 @@ public class UserService {
 
         return transactionsFound;
     }
+
+    @Transactional(rollbackFor = IOException.class)
+    public Map<String, String> UploadIdToS3 (MultipartFile file, UserModel currentUser, String ip, String device) throws IOException{
+
+            KycModel kyc = kycRepository.findByUserAndKycType(currentUser, KycType.ID);
+
+            if (!kyc.getStatus().equals(KycStatus.Pending)){
+                throw new BadRequestException("Kyc not needed at this time");
+            }
+
+            String key = s3.uploadIdFileToS3(String.valueOf(currentUser.getId()), file);
+
+            kyc.setSubmittedAt(ZonedDateTime.now(ZoneId.of("UTC")));
+            kyc.setStatus(KycStatus.Under_review);
+            kyc.setUrl(key);
+            kycRepository.save(kyc);
+
+            Map<String, String> infos = ipUtil.getIpDetails(ip);
+            Map<String, String> ua = userAgentUtil.getDeviceInfo(device);
+
+            AuditLogs newLog = new AuditLogs();
+            newLog.setUser(currentUser);
+            newLog.setAction("User uploaded his id for kyc verification purposes");
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(ua.get("OS"));
+            newLog.setDevice(ua.get("Device"));
+            newLog.setBrowser(ua.get("Browser"));
+
+            logRepository.save(newLog);
+
+            Map<String, String> response = new LinkedHashMap<>();
+
+            response.put("notice", "File successfully uploaded");
+
+            return response;
+    }
+
 }

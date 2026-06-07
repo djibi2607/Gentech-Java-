@@ -21,9 +21,9 @@ public class S3Util {
     @Value("${s3.bucket.name}")
     private String bucket;
 
-    private final List<String> allowedIdEx = List.of("jpeg", "jpg", "png", "pdf");
+    private final List<String> allowedIdEx = List.of(".jpeg", ".jpg", ".png", ".pdf");
 
-    private final List<String> allowedSelfieEx = List.of("jpeg", "jpg", "png");
+    private final List<String> allowedSelfieEx = List.of(".jpeg", ".jpg", ".png");
 
     private final List<String> allowedIdContentTypes = List.of("image/jpeg", "image/png", "image/jpg", "application/pdf");
 
@@ -44,7 +44,7 @@ public class S3Util {
             throw new BadRequestException("File type not supported");
         }
 
-        if (!allowedSelfieContentTypes.contains(file.getContentType())){
+        if (!allowedIdContentTypes.contains(file.getContentType())){
             throw new BadRequestException("File type not supported");
         }
 
@@ -74,7 +74,7 @@ public class S3Util {
             throw new BadRequestException("File type not supported");
         }
 
-        if (!allowedIdContentTypes.contains(file.getContentType())){
+        if (!allowedSelfieContentTypes.contains(file.getContentType())){
             throw new BadRequestException("File type not supported");
         }
 

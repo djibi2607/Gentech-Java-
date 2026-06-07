@@ -10,9 +10,12 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -80,5 +83,13 @@ public class UserController {
                                                                          @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10") int size){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(userService.searchForTransactions(currentUser, page, size, description, type));
+    }
+
+    @PostMapping(value = "/upload-id", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> uploadIdToS3 (HttpServletRequest request, @RequestPart("file")MultipartFile file) throws IOException {
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        String ip = request.getRemoteAddr();
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(userService.UploadIdToS3(file, currentUser, ip, device));
     }
 }
