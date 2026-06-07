@@ -1,7 +1,9 @@
 package com.abdoul.gentech_fintech.Services;
 
+import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.AgentDTO;
+import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Exceptions.BadRequestException;
 import com.abdoul.gentech_fintech.Exceptions.ForbiddenException;
 import com.abdoul.gentech_fintech.Exceptions.NotFoundException;
@@ -9,6 +11,11 @@ import com.abdoul.gentech_fintech.Models.*;
 import com.abdoul.gentech_fintech.Repositories.*;
 import com.abdoul.gentech_fintech.Util.*;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +25,7 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AgentService {
@@ -33,8 +41,9 @@ public class AgentService {
     private final IpUtil ipUtil;
     private final UserAgentUtil userAgentUtil;
     private final CacheManager cacheManager;
+    private final KycRepository kycRepository;
 
-    public AgentService (UserAgentUtil userAgentUtil,CacheManager cacheManager,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
+    public AgentService (UserAgentUtil userAgentUtil,KycRepository kycRepository,CacheManager cacheManager,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
         this.userRepository = userRepository;
         this.resend = resend;
         this.twoFactorUtil = twoFactorUtil;
@@ -46,6 +55,7 @@ public class AgentService {
         this.ipUtil = ipUtil;
         this.userAgentUtil = userAgentUtil;
         this.cacheManager = cacheManager;
+        this.kycRepository = kycRepository;
     }
 
     @Transactional(noRollbackFor = BadRequestException.class)
@@ -578,5 +588,31 @@ public class AgentService {
         response.put("notice", "Successfully flagged");
 
         return response;
+    }
+
+    @Cacheable(cacheNames = "kycs", key = "#page + '_' + #size")
+    public List<UserDTO.KycDetails> getUnSolvedKyc (UserModel currentUser, int page, int size){
+
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        if (page < 1){
+            throw new BadRequestException("Page must not be less than 1");
+        }
+
+        Pageable pageable = PageRequest.of(page -1, size, Sort.by(Sort.Direction.ASC, "user.id").and(Sort.by(Sort.Direction.ASC, "submittedAt")));
+
+        Page<KycModel> kycs = kycRepository.findUnresolvedKyc(KycStatus.Under_review, pageable);
+
+       return kycs.getContent().stream().map(kyc -> {
+           UserDTO.KycDetails details = new UserDTO.KycDetails();
+           details.setId(kyc.getId());
+           details.setType(kyc.getKycType());
+           details.setStatus(kyc.getStatus());
+           details.setSubmittedAt(kyc.getSubmittedAt());
+           details.setName(kyc.getUser().getName());
+           return details;
+       }).collect(Collectors.toList());
     }
 }
