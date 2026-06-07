@@ -92,4 +92,12 @@ public class UserController {
         String device = request.getHeader("User-Agent");
         return ResponseEntity.ok().body(userService.UploadIdToS3(file, currentUser, ip, device));
     }
+
+    @PostMapping(value = "/upload-selfie", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> uploadSelfieToS3 (@RequestPart("file") MultipartFile file, HttpServletRequest request) throws IOException{
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        String ip = request.getRemoteAddr();
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(userService.uploadImageTos3(file, currentUser, ip, device));
+    }
 }

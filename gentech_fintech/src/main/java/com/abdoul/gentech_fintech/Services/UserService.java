@@ -558,4 +558,41 @@ public class UserService {
             return response;
     }
 
+    public Map<String, String> uploadImageTos3 (MultipartFile file, UserModel currentUser, String ip, String device) throws IOException{
+        KycModel kyc = kycRepository.findByUserAndKycType(currentUser, KycType.SELFIE);
+
+        if (!kyc.getStatus().equals(KycStatus.Pending)){
+            throw new BadRequestException("Kyc not needed at this time");
+        }
+
+        String key = s3.uploadPictureFileToS3(String.valueOf(currentUser.getId()), file);
+
+        kyc.setSubmittedAt(ZonedDateTime.now(ZoneId.of("UTC")));
+        kyc.setStatus(KycStatus.Under_review);
+        kyc.setUrl(key);
+        kycRepository.save(kyc);
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> ua = userAgentUtil.getDeviceInfo(device);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setUser(currentUser);
+        newLog.setAction("User uploaded his selfie for kyc verification purposes");
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(ua.get("OS"));
+        newLog.setDevice(ua.get("Device"));
+        newLog.setBrowser(ua.get("Browser"));
+
+        logRepository.save(newLog);
+
+        Map<String, String> response = new LinkedHashMap<>();
+
+        response.put("notice", "File successfully uploaded");
+
+        return response;
+
+    }
 }
