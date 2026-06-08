@@ -17,6 +17,9 @@ public class RateLimitingConfig {
         reg.addUrlPatterns("/api/agents/withdraw");
         reg.addUrlPatterns("/api/agents/withdraw-with-2-fa");
         reg.addUrlPatterns("/api/agents/flag");
+        reg.addUrlPatterns("/api/agents/url");
+        reg.addUrlPatterns("/api/agents/kyc");
+        reg.addUrlPatterns("/api/agents/verify-kyc");
         reg.setOrder(2);
 
         return reg;

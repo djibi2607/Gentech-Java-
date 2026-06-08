@@ -7,6 +7,7 @@ import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.AgentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.aspectj.weaver.loadtime.Agent;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,5 +76,19 @@ public class AgentController {
         return ResponseEntity.ok().body(agentService.getUnSolvedKyc(currentUser, page, size));
     }
 
+    @PostMapping("/url")
+    public ResponseEntity<Map<String, String>> getGeneratedUrl (HttpServletRequest request, @RequestBody AgentDTO.Url data){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        String ip = request.getRemoteAddr();
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.generateUrl(currentUser, ip, device, data));
+    }
 
+    @PatchMapping("/verify-kyc")
+    public ResponseEntity<Map<String, String>> verifyKyc (@RequestBody AgentDTO.Kyc data, HttpServletRequest request){
+        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
+        String ip = request.getRemoteAddr();
+        String device = request.getHeader("User-Agent");
+        return ResponseEntity.ok().body(agentService.handleKyc(data, currentUser, ip, device));
+    }
 }
