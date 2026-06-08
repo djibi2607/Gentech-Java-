@@ -2,6 +2,7 @@ package com.abdoul.gentech_fintech.Models;
 
 import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import com.abdoul.gentech_fintech.Configuration.KycType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,6 +35,7 @@ public class KycModel {
     @Column(columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime reviewedAt;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "kyc_user", unique = true)
     private UserModel user;

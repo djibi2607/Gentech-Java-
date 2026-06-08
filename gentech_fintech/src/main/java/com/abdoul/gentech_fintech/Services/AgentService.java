@@ -605,14 +605,14 @@ public class AgentService {
 
         Page<KycModel> kycs = kycRepository.findUnresolvedKyc(KycStatus.Under_review, pageable);
 
-       return kycs.getContent().stream().map(kyc -> {
-           UserDTO.KycDetails details = new UserDTO.KycDetails();
-           details.setId(kyc.getId());
-           details.setType(kyc.getKycType());
-           details.setStatus(kyc.getStatus());
-           details.setSubmittedAt(kyc.getSubmittedAt());
-           details.setName(kyc.getUser().getName());
-           return details;
-       }).collect(Collectors.toList());
+        return kycs.getContent().stream().map(k -> {
+            UserDTO.KycDetails details = new UserDTO.KycDetails();
+            details.setId(k.getId());
+            details.setType(k.getKycType());
+            details.setStatus(k.getStatus());
+            details.setSubmittedAt(k.getSubmittedAt());
+            details.setName(k.getUser().getName());
+            return details;
+        }).collect(Collectors.toList());
     }
 }

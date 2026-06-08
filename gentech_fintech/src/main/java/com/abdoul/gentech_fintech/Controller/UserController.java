@@ -4,11 +4,11 @@ import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
 import com.abdoul.gentech_fintech.Models.TransactionModel;
 import com.abdoul.gentech_fintech.Models.UserModel;
+import com.abdoul.gentech_fintech.Repositories.UserRepository;
 import com.abdoul.gentech_fintech.Services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -85,19 +85,11 @@ public class UserController {
         return ResponseEntity.ok().body(userService.searchForTransactions(currentUser, page, size, description, type));
     }
 
-    @PostMapping(value = "/upload-id", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, String>> uploadIdToS3 (HttpServletRequest request, @RequestPart("file")MultipartFile file) throws IOException {
+    @PostMapping(value = "/upload-docs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> uploadKycDocumentToS3 (HttpServletRequest request, @RequestPart("file")MultipartFile file, @RequestPart("file1") MultipartFile file1) throws IOException {
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         String ip = request.getRemoteAddr();
         String device = request.getHeader("User-Agent");
-        return ResponseEntity.ok().body(userService.UploadIdToS3(file, currentUser, ip, device));
-    }
-
-    @PostMapping(value = "/upload-selfie", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, String>> uploadSelfieToS3 (@RequestPart("file") MultipartFile file, HttpServletRequest request) throws IOException{
-        UserModel currentUser = (UserModel) request.getAttribute("currentUser");
-        String ip = request.getRemoteAddr();
-        String device = request.getHeader("User-Agent");
-        return ResponseEntity.ok().body(userService.uploadImageTos3(file, currentUser, ip, device));
+        return ResponseEntity.ok().body(userService.UploadKycDocumentToS3(file,file1, currentUser, ip, device));
     }
 }

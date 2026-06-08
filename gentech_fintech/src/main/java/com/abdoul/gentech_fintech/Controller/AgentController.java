@@ -2,6 +2,7 @@ package com.abdoul.gentech_fintech.Controller;
 
 import com.abdoul.gentech_fintech.DTO.AgentDTO;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
+import com.abdoul.gentech_fintech.Models.KycModel;
 import com.abdoul.gentech_fintech.Models.UserModel;
 import com.abdoul.gentech_fintech.Services.AgentService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,9 +70,10 @@ public class AgentController {
     }
 
     @GetMapping("/kyc")
-    public ResponseEntity<List<UserDTO.KycDetails>> getUnsolvedKyc (HttpServletRequest request, @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam("size") int size){
+    public ResponseEntity<List<UserDTO.KycDetails>> getUnsolvedKyc (HttpServletRequest request, @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "size", defaultValue = "10") int size){
         UserModel currentUser = (UserModel) request.getAttribute("currentUser");
         return ResponseEntity.ok().body(agentService.getUnSolvedKyc(currentUser, page, size));
     }
+
 
 }
