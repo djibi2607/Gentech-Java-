@@ -1,5 +1,6 @@
 package com.abdoul.gentech_fintech.Util;
 
+import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import com.abdoul.gentech_fintech.Configuration.TransType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -134,6 +135,26 @@ public class Resend {
                 "<p> The total amount of transfers made is:" + transfer + "</p>" +
                 "<p> The total amount that moved today is:" + amount + "</p>" +
                 "<p>&nbsp;</p>" +
+                "<p>Thank you,<br>The Gentech Team.</p>");
+
+        webClient.post()
+                .uri("/emails")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(String.class)
+                .retry(3L)
+                .doOnError(error -> log.error("Email failed {}", error.getMessage(), error))
+                .subscribe();
+    }
+
+    public void sendKycStatusEmail(String name, KycStatus status){
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("from", "Acme <onboarding@resend.dev>");
+        body.put("to", myEmail);
+        body.put("subject", "KYC Verification Update");
+        body.put("html", "<p style=\"text-align: center;\"><strong>KYC Verification Update</strong></p>" +
+                "<p>Hello " + name + ", your KYC documents have been reviewed.</p>" +
+                "<p>Status: <strong>" + status + "</strong></p>" +
                 "<p>Thank you,<br>The Gentech Team.</p>");
 
         webClient.post()

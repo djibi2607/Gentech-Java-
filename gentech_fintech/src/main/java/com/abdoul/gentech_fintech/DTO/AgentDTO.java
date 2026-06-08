@@ -1,8 +1,10 @@
 package com.abdoul.gentech_fintech.DTO;
 
+import com.abdoul.gentech_fintech.Configuration.KycStatus;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -54,5 +56,23 @@ public class AgentDTO {
         private Long id;
         private String email;
         private String phone;
+    }
+
+    @Getter
+    @Setter
+    public static class Kyc{
+        @NotNull(message = "Id is required")
+        private Long id;
+        @NonNull
+        private KycStatus status;
+        @NotBlank(message = "Enter the reason why you made this choice")
+        private String reason;
+    }
+
+    @Getter
+    @Setter
+    public static class Url{
+        @NotNull(message = "Id is required")
+        private Long id;
     }
 }

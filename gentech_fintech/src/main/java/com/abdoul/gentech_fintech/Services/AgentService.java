@@ -1,6 +1,7 @@
 package com.abdoul.gentech_fintech.Services;
 
 import com.abdoul.gentech_fintech.Configuration.KycStatus;
+import com.abdoul.gentech_fintech.Configuration.KycType;
 import com.abdoul.gentech_fintech.Configuration.TransType;
 import com.abdoul.gentech_fintech.DTO.AgentDTO;
 import com.abdoul.gentech_fintech.DTO.UserDTO;
@@ -42,8 +43,9 @@ public class AgentService {
     private final UserAgentUtil userAgentUtil;
     private final CacheManager cacheManager;
     private final KycRepository kycRepository;
+    private final UrlUtil url;
 
-    public AgentService (UserAgentUtil userAgentUtil,KycRepository kycRepository,CacheManager cacheManager,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
+    public AgentService (UserAgentUtil userAgentUtil, UrlUtil url, KycRepository kycRepository,CacheManager cacheManager,UserRepository userRepository, IpUtil ipUtil, Resend resend, TwoFactorUtil twoFactorUtil, LogRepository logRepository, JwtUtil jwt, TwoFactorRepository twoFactorRepository, WalletRepository walletRepository, TransactionRepository transactionRepository){
         this.userRepository = userRepository;
         this.resend = resend;
         this.twoFactorUtil = twoFactorUtil;
@@ -56,6 +58,7 @@ public class AgentService {
         this.userAgentUtil = userAgentUtil;
         this.cacheManager = cacheManager;
         this.kycRepository = kycRepository;
+        this.url = url;
     }
 
     @Transactional(noRollbackFor = BadRequestException.class)
@@ -614,5 +617,144 @@ public class AgentService {
             details.setName(k.getUser().getName());
             return details;
         }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Map<String, String> generateUrl (UserModel currentUser, String ip, String device, AgentDTO.Url data){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
+
+        KycModel kyc = kycRepository.findByIdWithLock(data.getId()).orElseThrow(()-> new BadRequestException("Record not found"));
+
+        if (kyc.getStatus().equals(KycStatus.In_review)){
+            throw new ForbiddenException("Already in review");
+        }
+
+        KycModel idKyc = kycRepository.findByUserAndKycType(kyc.getUser(), KycType.ID);
+
+        KycModel picKyc = kycRepository.findByUserAndKycType(kyc.getUser(), KycType.SELFIE);
+
+        if (!kyc.getStatus().equals(KycStatus.Under_review) && !currentUser.getRole().equals("admin")){
+            throw new ForbiddenException("Kyc already verified");
+        }
+
+        idKyc.setStatus(KycStatus.In_review);
+        kycRepository.saveAndFlush(idKyc);
+        picKyc.setStatus(KycStatus.In_review);
+        kycRepository.saveAndFlush(picKyc);
+
+        cacheManager.getCache("kycs").clear();
+
+        String idUrl = url.generatePreSignedUrl(idKyc.getUrl());
+        String picUrl = url.generatePreSignedUrl(picKyc.getUrl());
+
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("id url", idUrl);
+        response.put("selfie url", picUrl);
+
+        AuditLogs newLog = new AuditLogs();
+        newLog.setAction("Agent/ " + currentUser.getName() + "/" + currentUser.getEmail() + "/" + currentUser.getPhone() + " has generated a url for user with id " + kyc.getUser().getId());
+        newLog.setUser(currentUser);
+        newLog.setCity(infos.get("City"));
+        newLog.setCountry(infos.get("Country"));
+        newLog.setLongitude(infos.get("Longitude"));
+        newLog.setLatitude(infos.get("Latitude"));
+        newLog.setOs(userAgents.get("OS"));
+        newLog.setDevice(userAgents.get("Device"));
+        newLog.setBrowser(userAgents.get("Browser"));
+        logRepository.save(newLog);
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, String> handleKyc (AgentDTO.Kyc data, UserModel currentUser, String ip, String device){
+        if (!allowed_roles.contains(currentUser.getRole())){
+            throw new ForbiddenException("Unauthorized");
+        }
+
+        if (data.getStatus().equals(KycStatus.Pending) || data.getStatus().equals(KycStatus.Under_review)){
+            throw new BadRequestException("Unable to set status as " + data.getStatus());
+        }
+
+        Map<String, String> infos = ipUtil.getIpDetails(ip);
+        Map<String, String> userAgents = userAgentUtil.getDeviceInfo(device);
+
+        Map<String, String> response = new LinkedHashMap<>();
+
+        KycModel kyc = kycRepository.findById(data.getId()).orElseThrow(()-> new BadRequestException("Record not found"));
+
+        KycModel idKyc = kycRepository.findByUserAndKycType(kyc.getUser(), KycType.ID);
+
+        if ((idKyc.getStatus().equals(KycStatus.Completed) || idKyc.getStatus().equals(KycStatus.Rejected)) && !currentUser.getRole().equals("admin")){
+            throw new ForbiddenException("Kyc document has already been verified");
+        }
+
+        if (!idKyc.getStatus().equals(KycStatus.In_review)){
+            throw new ForbiddenException("You should check the document first");
+        }
+
+        KycModel picKyc = kycRepository.findByUserAndKycType(kyc.getUser(), KycType.SELFIE);
+
+        if ((picKyc.getStatus().equals(KycStatus.Completed) || picKyc.getStatus().equals(KycStatus.Rejected)) && !currentUser.getRole().equals("admin")){
+            throw new ForbiddenException("Kyc document has already been verified");
+        }
+
+        if (!picKyc.getStatus().equals(KycStatus.In_review)){
+            throw new ForbiddenException("You should check the document first");
+        }
+
+        AuditLogs newLog = new AuditLogs();
+
+        if (data.getStatus().equals(KycStatus.Completed)){
+            idKyc.setKycRemainder(true);
+            idKyc.setStatus(data.getStatus());
+            picKyc.setKycRemainder(true);
+            picKyc.setStatus(data.getStatus());
+
+            kycRepository.save(idKyc);
+            kycRepository.save(picKyc);
+            response.put("notice", "User kyc documents has been marked as valid");
+
+            newLog.setAction("Agent/ " + currentUser.getName() + "/" + currentUser.getEmail() + "/" + currentUser.getPhone() + " has validated the kyc docs of user with id " + kyc.getUser().getId());
+            newLog.setUser(currentUser);
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
+            logRepository.save(newLog);
+            resend.sendKycStatusEmail(kyc.getUser().getName(), data.getStatus());
+            return response;
+        }
+
+        else{
+            idKyc.setStatus(data.getStatus());
+            picKyc.setStatus(data.getStatus());
+            kycRepository.save(idKyc);
+            kycRepository.save(picKyc);
+
+            response.put("notice", "User kyc documents has been marked as invalid");
+
+            newLog.setAction("Agent/ " + currentUser.getName() + "/" + currentUser.getEmail() + "/" + currentUser.getPhone() + " has rejected the kyc docs of user with id " + kyc.getUser().getId());
+            newLog.setUser(currentUser);
+            newLog.setCity(infos.get("City"));
+            newLog.setCountry(infos.get("Country"));
+            newLog.setLongitude(infos.get("Longitude"));
+            newLog.setLatitude(infos.get("Latitude"));
+            newLog.setOs(userAgents.get("OS"));
+            newLog.setDevice(userAgents.get("Device"));
+            newLog.setBrowser(userAgents.get("Browser"));
+            logRepository.save(newLog);
+            resend.sendKycStatusEmail(kyc.getUser().getName(), data.getStatus());
+            return response;
+        }
+
     }
 }

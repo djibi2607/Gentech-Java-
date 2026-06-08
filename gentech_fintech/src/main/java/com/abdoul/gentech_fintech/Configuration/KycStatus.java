@@ -4,5 +4,6 @@ public enum KycStatus {
     Pending,
     Under_review,
     Completed,
-    REJECTED
+    Rejected,
+    In_review
 }
